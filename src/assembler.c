@@ -28,11 +28,12 @@ void assemble_buffer(char* buffer){
 	printf("Starting Lexing\n");
 	do{
 		tok = nextToken();
-		printf("%s", tok.strValue);
+		//printf("%s", tok.strValue);
 		tokenArray[totalTokens] = tok;
+		printf("%s\n", tokenTypeToString(tok.type));
 		totalTokens++;
 	} while(tok.type != TOK_EOF && totalTokens < 2048);
-	
+	printf("DONE LEXING\n");
 	line = 1;
 	currentTokenIndex = 0;
 	printf("Starting parsing phase..\n");

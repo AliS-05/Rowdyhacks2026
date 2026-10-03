@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <token.h>
-
+#include <ctype.h>
 extern int line;
 extern char* source;
 extern int curPos;

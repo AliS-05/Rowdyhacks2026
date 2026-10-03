@@ -7,8 +7,8 @@ typedef enum {
 	INST_INVALID = 0,
 	INST_LABEL,
 	
-	INST_LDW,
-	INST_STW,
+	INST_LW,
+	INST_SW,
 	INST_ADDI,
 	INST_ADD,
 	INST_SUB,
@@ -16,8 +16,6 @@ typedef enum {
 
 
 	INST_MOV,
-	INST_ADD,
-	INST_SUB,
 	INST_JMP,
 	INST_CALL,
 	INST_RET,

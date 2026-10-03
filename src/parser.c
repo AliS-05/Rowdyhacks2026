@@ -132,9 +132,14 @@ extern long currentAddress;
 
 
 MnemonicType strToInstructionType(const char* str) {
-	if (!strcmp(str, "mov"))  return INST_MOV;
+	if (!strcmp(str, "lw"))   return INST_LW;
+	if (!strcmp(str, "sw"))   return INST_SW;
+	if (!strcmp(str, "addi")) return INST_ADDI;
 	if (!strcmp(str, "add"))  return INST_ADD;
 	if (!strcmp(str, "sub"))  return INST_SUB;
+	if (!strcmp(str, "bne"))  return INST_BNE;
+
+	if (!strcmp(str, "mov"))  return INST_MOV;
 	if (!strcmp(str, "jmp"))  return INST_JMP;
 	if (!strcmp(str, "call")) return INST_CALL;
 	if (!strcmp(str, "ret"))  return INST_RET;
@@ -151,10 +156,15 @@ MnemonicType strToInstructionType(const char* str) {
 
 const char* mnemonicTypeToStr(MnemonicType type){
 	switch(type){
+		case INST_LW: return "lw";
+		case INST_SW: return "sw";
+		case INST_ADDI: return "addi";
+		case INST_ADD: return "add";
+		case INST_SUB: return "sub";
+		case INST_BNE: return "bne";
+
 		case INST_LABEL: return "label";
 		case INST_MOV:  return "mov";
-		case INST_ADD:  return "add";
-		case INST_SUB:  return "sub";
 		case INST_JMP:  return "jmp";
 		case INST_CALL: return "call";
 		case INST_RET:  return "ret";
@@ -197,6 +207,18 @@ void printInstruction(Instruction* i){
 		} else{
 			printf(" Operand 2 { ");
 			printf(i->operand2.strValue);
+			printf(" }\n");
+		}
+	}
+	if(i->operandCount >= 3){
+		if(i->operand3.type == NUMBER){
+			printf(" Operand 3 { ");
+			printf("%s", ntos(i->operand3.intValue, buf, 10));
+			
+			printf(" }\n");
+		} else{
+			printf(" Operand 3 { ");
+			printf(i->operand3.strValue);
 			printf(" }\n");
 		}
 	}
