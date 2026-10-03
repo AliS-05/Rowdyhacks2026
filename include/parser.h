@@ -6,6 +6,13 @@
 typedef enum {
 	INST_INVALID = 0,
 	INST_LABEL,
+	
+	INST_LDW,
+	INST_STW,
+	INST_ADDI,
+	INST_ADD,
+
+
 	INST_MOV,
 	INST_ADD,
 	INST_SUB,
@@ -33,6 +40,7 @@ typedef struct Instruction {
 	MnemonicType mnemonic; // mov jmp org lidt lgdt etc
 	Operand operand1; // necessary for every instruction , well not nop
 	Operand operand2; //optional
+	Operand operand3;
 	int operandCount;
 	int size; // in bytes
 	int address;

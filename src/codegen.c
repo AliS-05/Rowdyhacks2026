@@ -32,14 +32,18 @@ void ByteVectorWrite32(ByteVector* vec, int value) {
 }
 
 int getRegisterCode(const char* reg) {
-	if(!strcmp(reg, "eax")) return 0;
-	if(!strcmp(reg, "ecx")) return 1;
-	if(!strcmp(reg, "edx")) return 2;
-	if(!strcmp(reg, "ebx")) return 3;
-	if(!strcmp(reg, "esp")) return 4;
-	if(!strcmp(reg, "ebp")) return 5;
-	if(!strcmp(reg, "esi")) return 6;
-	if(!strcmp(reg, "edi")) return 7;
+	if(!strcmp(reg, "r1"))  return 1;
+	if(!strcmp(reg, "r2"))  return 2;
+	if(!strcmp(reg, "r3"))  return 3;
+	if(!strcmp(reg, "r4"))  return 4;
+	if(!strcmp(reg, "r5"))  return 5;
+	if(!strcmp(reg, "r6"))  return 6;
+	if(!strcmp(reg, "r7"))  return 7;
+	if(!strcmp(reg, "r8"))  return 8;
+	if(!strcmp(reg, "r9"))  return 9;
+	if(!strcmp(reg, "r10")) return 10;
+	if(!strcmp(reg, "r11")) return 11;
+	if(!strcmp(reg, "r12")) return 12;
 
 	printf("Unknown register: %s\n", reg);
 	return -1;
@@ -49,52 +53,52 @@ uint8_t getMod(int mod, int reg, int rm) {
 	return (mod << 6) | (reg << 3) | rm;
 }
 
-void encodeMove(Instruction* inst, ByteVector* byteVector){
-	// mov reg, [mem]  = 8B
-	// mov [mem], reg = 89
-	// mov [reg], imm = C7
-	if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
-		//8B is RM op1 = ModRM:reg, op2 = ModRM:r/m
-		int dst = getRegisterCode(inst->operand1.strValue);
-		int src = getRegisterCode(inst->operand2.strValue);
-		ByteVectorPush(byteVector, 0x8B);
-		ByteVectorPush(byteVector, getMod(0b00, dst, src));
-		return;
-	}
-	else if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
-		//89 is MR op1 = ModRM:r/m op2 = ModRM:reg
-		int dst = getRegisterCode(inst->operand1.strValue);
-		int src = getRegisterCode(inst->operand2.strValue);
-		ByteVectorPush(byteVector, 0x89);
-		//NOTE might need to switch src dst here
-		ByteVectorPush(byteVector, getMod(0b00, src, dst));
-		return;
-	}
-	else if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
-		//C7 is MI op1 = ModRM:r/m op2 = imm32
-		int dst = getRegisterCode(inst->operand1.strValue);
-		ByteVectorPush(byteVector, 0xC7);
-		ByteVectorPush(byteVector, getMod(0b00, 0, dst));
-		ByteVectorWrite32(byteVector, inst->operand2.intValue);
-		return;
-	}
-
-	int reg1 = getRegisterCode(inst->operand1.strValue);
-
-	if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
-		// b8 for immediate to register
-		ByteVectorPush(byteVector, 0xB8 + reg1); // b9 ba etc
-		ByteVectorWrite32(byteVector, inst->operand2.intValue);
-		return;
-	}else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
-		int reg2 = getRegisterCode(inst->operand2.strValue);
-		ByteVectorPush(byteVector, 0x89);
-		//mod rm calculations
-		uint8_t modrm = 0xC0 | (reg2 << 3) | reg1; 
-		ByteVectorPush(byteVector, modrm);
-		return;
-	}
-}
+//void encodeMove(Instruction* inst, ByteVector* byteVector){
+//	// mov reg, [mem]  = 8B
+//	// mov [mem], reg = 89
+//	// mov [reg], imm = C7
+//	if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
+//		//8B is RM op1 = ModRM:reg, op2 = ModRM:r/m
+//		int dst = getRegisterCode(inst->operand1.strValue);
+//		int src = getRegisterCode(inst->operand2.strValue);
+//		ByteVectorPush(byteVector, 0x8B);
+//		ByteVectorPush(byteVector, getMod(0b00, dst, src));
+//		return;
+//	}
+//	else if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
+//		//89 is MR op1 = ModRM:r/m op2 = ModRM:reg
+//		int dst = getRegisterCode(inst->operand1.strValue);
+//		int src = getRegisterCode(inst->operand2.strValue);
+//		ByteVectorPush(byteVector, 0x89);
+//		//NOTE might need to switch src dst here
+//		ByteVectorPush(byteVector, getMod(0b00, src, dst));
+//		return;
+//	}
+//	else if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
+//		//C7 is MI op1 = ModRM:r/m op2 = imm32
+//		int dst = getRegisterCode(inst->operand1.strValue);
+//		ByteVectorPush(byteVector, 0xC7);
+//		ByteVectorPush(byteVector, getMod(0b00, 0, dst));
+//		ByteVectorWrite32(byteVector, inst->operand2.intValue);
+//		return;
+//	}
+//
+//	int reg1 = getRegisterCode(inst->operand1.strValue);
+//
+//	if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
+//		// b8 for immediate to register
+//		ByteVectorPush(byteVector, 0xB8 + reg1); // b9 ba etc
+//		ByteVectorWrite32(byteVector, inst->operand2.intValue);
+//		return;
+//	}else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
+//		int reg2 = getRegisterCode(inst->operand2.strValue);
+//		ByteVectorPush(byteVector, 0x89);
+//		//mod rm calculations
+//		uint8_t modrm = 0xC0 | (reg2 << 3) | reg1; 
+//		ByteVectorPush(byteVector, modrm);
+//		return;
+//	}
+//}
 
 
 
@@ -108,7 +112,38 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 	switch(inst->mnemonic) {
 		case INST_LABEL: {
 			break;
+				 }
+		case INST_LDW:{
+		      	int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2 = getRegisterCode(inst->operand2.strValue);
+			int operand3 = inst->operand3.intValue;
+
+			uint32_t instruction = 0;
+			uint32_t opcode = 0b000011;
+
+			instruction |= opcode;
+			uint32_t funct3 = 0b000;
+			instruction |= (funct3 << 12);
+
+			instruction |= (register1 << 15);
+			instruction |= (register2 << 20);
+
+			uint32_t funct7 = 0b0000000;
+			instruction |= (funct7 << 25);
+
+			ByteVectorWrite32(byteVector, instruction);
+	      	}
+		case INST_STD: {
+
+			       }
+		case INST_ADDI: {
+
+				}
+
+		case INST_ADD: {
+
 		}
+
 		case INST_MOV: {
 			encodeMove(inst, byteVector);
 			break;

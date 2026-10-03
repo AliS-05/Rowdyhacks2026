@@ -297,6 +297,7 @@ Instruction parseInstruction(TokVector* vec){
 		printf(tokenTypeToString(vec->data[0].type));
 		return instruction;
 	}
+
 	instructionPos++;
 	instruction.mnemonic = strToInstructionType(vec->data[0].strValue);
 	// verifying there are more tokens and getting next operand
@@ -314,6 +315,17 @@ Instruction parseInstruction(TokVector* vec){
 	if(instructionPos < vec->size){
 		instruction.operand2 = parseOperand(vec, &instructionPos);
 		instruction.operandCount = 2;
+	}
+
+	//skipping commma 
+	if(instructionPos < vec->size && vec->data[instructionPos].type == COMMA){
+		instructionPos++;
+	}
+
+	// verify third token and get third operand
+	if(instructionPos < vec->size){
+		instruction.operand3 = parseOperand(vec, &instructionPos);
+		instruction.operandCount = 3;
 	}
 
 	return instruction;
