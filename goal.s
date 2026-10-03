@@ -1,2 +1,0 @@
-LDB R1, R2
-BNE R1
