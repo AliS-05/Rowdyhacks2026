@@ -1,10 +1,9 @@
 //#include <core/structures.h>
 #include <stdlib.h>
 
-
 #include <vector.h>
-#include <asm_token.h>
-#include <asm_parser.h>
+#include <token.h>
+#include <parser.h>
 #include <symbol_table.h>
 // TokenVec vector;
 // tokenVectorInit(&vector);

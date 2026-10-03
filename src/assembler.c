@@ -1,7 +1,7 @@
 #include <token.h>
 #include <lexer.h>
 #include <parser.h>
-#include <table.h>
+#include <symbol_table.h>
 #include <codegen.h>
 #include <vector.h>
 #include <memory.h>
@@ -28,9 +28,9 @@ void assemble_buffer(char* buffer){
 	printf("Starting Lexing\n");
 	do{
 		tok = nextToken();
+		printf("%s", tok.strValue);
 		tokenArray[totalTokens] = tok;
 		totalTokens++;
-
 	} while(tok.type != TOK_EOF && totalTokens < 2048);
 	
 	line = 1;
@@ -57,10 +57,18 @@ void assemble_buffer(char* buffer){
 	
 	printf("Constructing executable binary\n");
 	startCodeGen(&instVec, &table, &byteVector);
-	
-	// write result to OS filesystem
+
 	printf("Writing to output file\n");
-	writeFile("asoutput", "exe", byteVector.data, byteVector.size);
-	printf("Finished writing to output file. Enjoy!\n");
-}
+
+	FILE *file = fopen("asoutput.exe", "wb");
+
+	if (file == NULL) {
+		perror("fopen");
+		return;
+	}
+
+	fwrite(byteVector.data, 1, byteVector.size, file);
+	fclose(file);
+
+	printf("Finished writing to output file. Enjoy!\n");}
 

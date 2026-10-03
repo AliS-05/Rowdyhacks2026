@@ -1,10 +1,11 @@
-#include <structures.h>
-#include <utilities.h>
+#include <stdint.h>
 #include <memory.h>
 #include <token.h>
 #include <parser.h>
 #include <vector.h>
-
+#include <stdbool.h>
+#include <helpers.h>
+#include <stdio.h>
 extern long line;
 extern long currentAddress;
 
@@ -123,7 +124,7 @@ extern long currentAddress;
 //			i->size = 1;
 //			return 1;
 //
-//			print("Error calculating iruction size\n");
+//			printf("Error calculating iruction size\n");
 //			return -1;		
 //	}
 //	return -1;
@@ -171,40 +172,40 @@ const char* mnemonicTypeToStr(MnemonicType type){
 void printInstruction(Instruction* i){
 	if(!i) return;
 	char buf[32];
-	print("Instruction{ ");
-	print(mnemonicTypeToStr(i->mnemonic));
-	print(" }\n");
+	printf("Instruction{ ");
+	printf(mnemonicTypeToStr(i->mnemonic));
+	printf(" }\n");
 	if(i->operandCount >= 1){
 		if(i->operand1.type == NUMBER){
-			print(" Operand 1 { ");
-			print(ntos(i->operand1.intValue, buf, 10));
-			print(buf);
-			print(" }\n");
+			printf(" Operand 1 { ");
+			printf("%s", ntos(i->operand1.intValue, buf, 10));
+			printf(buf);
+			printf(" }\n");
 		} else{
-			print(" Operand 1 { ");
-			print(i->operand1.strValue);
-			print(" }\n");
+			printf(" Operand 1 { ");
+			printf(i->operand1.strValue);
+			printf(" }\n");
 		}
 	}
 
 	if(i->operandCount >= 2){
 		if(i->operand2.type == NUMBER){
-			print(" Operand 2 { ");
-			print(ntos(i->operand2.intValue, buf, 10));
+			printf(" Operand 2 { ");
+			printf("%s", ntos(i->operand2.intValue, buf, 10));
 			
-			print(" }\n");
+			printf(" }\n");
 		} else{
-			print(" Operand 2 { ");
-			print(i->operand2.strValue);
-			print(" }\n");
+			printf(" Operand 2 { ");
+			printf(i->operand2.strValue);
+			printf(" }\n");
 		}
 	}
-	print("Size of Instruction: ");
-	print(ntos(i->size, buf , 10));
-	print("\n");
-	print("Address of Instruction: ");
-	print(ntos(i->address, buf , 10));
-	print("\n");
+	printf("Size of Instruction: ");
+	printf("%s", ntos(i->size, buf , 10));
+	printf("\n");
+	printf("Address of Instruction: ");
+	printf("%s", ntos(i->address, buf , 10));
+	printf("\n");
 }
 
 Token advance(Token* tokenArray, int* index){
@@ -221,17 +222,17 @@ Token peek(Token* t, int index){
 	return t[index+1];
 }
 
-//simple check, if the two types dont match print an error. I dont have exit(1) implemented unfortunately so i think errors will just not really matter
+//simple check, if the two types dont match printf an error. I dont have exit(1) implemented unfortunately so i think errors will just not really matter
 void expect(Token* tokenArray, int* index, TokenType expectedType){
 	if(tokenArray[*index].type != expectedType){
-		print("Error on line: ");
+		printf("Error on line: ");
 		char buf[32];
-		print(ntos(line, buf, 10));
-		print("Expected: ");
-		print((tokenTypeToString(expectedType)));
-		print("Got: ");	
-		print(tokenTypeToString(tokenArray[*index].type));
-		print("\n");
+		printf("%s", ntos(line, buf, 10));
+		printf("Expected: ");
+		printf((tokenTypeToString(expectedType)));
+		printf("Got: ");	
+		printf(tokenTypeToString(tokenArray[*index].type));
+		printf("\n");
 		return;
 	}
 	(*index)++;
@@ -277,10 +278,10 @@ Instruction parseInstruction(TokVector* vec){
 	if(vec->size == 2 && vec->data[0].type == IDENTIFIER && vec->data[1].type == COLON){
 		instruction.mnemonic = INST_LABEL;
 		instruction.labelName = vec->data[0].strValue;
-		print("LABEL: ");
-		print(vec->data[0].strValue); 
-		print("Address: ");
-		print(ntos(currentAddress, buf, 10));
+		printf("LABEL: ");
+		printf(vec->data[0].strValue); 
+		printf("Address: ");
+		printf("%s", ntos(currentAddress, buf, 10));
 
 		return instruction; // skip adding to instruction vector
 	}
@@ -290,12 +291,13 @@ Instruction parseInstruction(TokVector* vec){
 	}
 	
 	if(vec->data[0].type != IDENTIFIER){ //error not a label directive or mnemonic
-		print("Error on line: ");
-		print(ntos(vec->data[0].line, buf, 10));
-		print("Expected mnemonic, got: ");
-		print(tokenTypeToString(vec->data[0].type));
+		printf("Error on line: ");
+		printf("%s", ntos(vec->data[0].line, buf, 10));
+		printf("Expected mnemonic, got: ");
+		printf(tokenTypeToString(vec->data[0].type));
 		return instruction;
 	}
+
 	instructionPos++;
 	instruction.mnemonic = strToInstructionType(vec->data[0].strValue);
 	// verifying there are more tokens and getting next operand
@@ -315,13 +317,24 @@ Instruction parseInstruction(TokVector* vec){
 		instruction.operandCount = 2;
 	}
 
+	//skipping commma 
+	if(instructionPos < vec->size && vec->data[instructionPos].type == COMMA){
+		instructionPos++;
+	}
+
+	// verify third token and get third operand
+	if(instructionPos < vec->size){
+		instruction.operand3 = parseOperand(vec, &instructionPos);
+		instruction.operandCount = 3;
+	}
+
 	return instruction;
 }
 
 void parseLine(Token* tokenArray, int* index, InstructionVector* instVec){
 	TokVector tokVec;
 	tokenVecInit(&tokVec);
-	boolean modrmNeeded = false;
+	bool modrmNeeded = false;
 
 	while(tokenArray[*index].type != NEWLINE &&
 	      tokenArray[*index].type != TOK_EOF){

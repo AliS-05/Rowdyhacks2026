@@ -76,7 +76,7 @@ Token nextToken() {
 	}
 	//didnt match any single char tokens so must be a register or label or immediate
 	// Identifier or keyword
-	if (isLetter(c) || c == '_') {
+	if (isalpha(c) || c == '_') {
 		char buffer[64];
 		int i = 0;	
 		//read into buffer and cmp 
@@ -85,18 +85,18 @@ Token nextToken() {
 		}
 
 		buffer[i] = '\0';	
-		if (!strcmp(buffer, "rax") ||
-			!strcmp(buffer, "rbx") ||
-			!strcmp(buffer, "rcx") ||
-		        !strcmp(buffer, "rdx") ||
-		        !strcmp(buffer, "eax") ||
-		        !strcmp(buffer, "ebx") ||
-		        !strcmp(buffer, "ecx") ||
-		        !strcmp(buffer, "edx") || 
-		        !strcmp(buffer, "esp") || 
-		        !strcmp(buffer, "ebp") || 
-		        !strcmp(buffer, "esi") || 
-		        !strcmp(buffer, "edi")) {
+		if (!strcmp(buffer, "r1") ||
+			!strcmp(buffer, "r2") ||
+			!strcmp(buffer, "r3") ||
+		        !strcmp(buffer, "r4") ||
+		        !strcmp(buffer, "r5") ||
+		        !strcmp(buffer, "r6") ||
+		        !strcmp(buffer, "r7") ||
+		        !strcmp(buffer, "r8") || 
+		        !strcmp(buffer, "r9") || 
+		        !strcmp(buffer, "r10") || 
+		        !strcmp(buffer, "r11") || 
+		        !strcmp(buffer, "r12")) {
 		        tok.type = REGISTER;
 		        tok.strValue = strdup(buffer);
 		        return tok;
