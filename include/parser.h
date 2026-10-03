@@ -11,6 +11,8 @@ typedef enum {
 	INST_STW,
 	INST_ADDI,
 	INST_ADD,
+	INST_SUB,
+	INST_BNE,
 
 
 	INST_MOV,

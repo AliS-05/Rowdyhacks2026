@@ -116,7 +116,7 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		case INST_LDW:{
 		      	int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2 = getRegisterCode(inst->operand2.strValue);
-			int operand3 = inst->operand3.intValue;
+			//int operand3 = inst->operand3.intValue;
 
 			uint32_t instruction = 0;
 			uint32_t opcode = 0b000011;
@@ -133,9 +133,33 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 
 			ByteVectorWrite32(byteVector, instruction);
 	      	}
-		case INST_STD: {
+		case INST_STW: {
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2 = getRegisterCode(inst->operand2.strValue);
+			//int operand3 = inst->operand3.intValue;
+			
+			int immediate = 0;
 
-			       }
+			uint32_t instruction = 0;
+			uint32_t opcode = 0b0100011;
+
+			instruction |= opcode;
+
+			uint32_t funct3 = 0b010;
+			instruction |= (funct3 << 12);
+
+			instruction |= (register1 << 15); // rs1
+			instruction |= (register2 << 20); // rs2
+
+			// imm[4:0] -> bits 11:7
+			instruction |= ((immediate & 0x1F) << 7);
+
+			// imm[11:5] -> bits 31:25
+			instruction |= (((immediate >> 5) & 0x7F) << 25);
+
+			ByteVectorWrite32(byteVector, instruction);
+
+	       }
 		case INST_ADDI: {
 			int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2 = getRegisterCode(inst->operand2.strValue);
@@ -151,8 +175,13 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			instruction |= register1 << 7;
 			instruction |= opcode;
 			ByteVectorWrite32(byteVector, instruction);
-				}
+		}
+		case INST_SUB: {
 
+		}
+		case INST_BNE: {
+
+		}	
 		case INST_MOV: {
 			encodeMove(inst, byteVector);
 			break;
