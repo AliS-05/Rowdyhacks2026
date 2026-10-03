@@ -1,9 +1,9 @@
-#include <structures.h>
-#include <utilities.h>
+#include <stdint.h>
 #include <string.h>
 #include <symbol_table.h>
+#include <stdio.h>
 #include <stdlib.h>
-
+#include <helpers.h>
 
 //vector stuff copied from vector.c, it needed to be in this file and NOT vector.c for some reason that i forgot. i think.
 void symbolTableInit(SymbolTable* table) {
@@ -11,7 +11,7 @@ void symbolTableInit(SymbolTable* table) {
 	table->capacity = 16;
 	table->data = malloc(table->capacity * sizeof(Symbol));
 	if (!table->data) {
-		print("Failed to initialize symbol table\n");
+		printf("Failed to initialize symbol table\n");
 	}
 }
 
@@ -42,19 +42,17 @@ int symbolTableLookup(SymbolTable* table, const char* name) {
 		}
 	}
 
-	print("Undefined label: ");
-	print(name);
+	printf("Undefined label: %s", name);
 	return -1;
 }
 
 
 void printSymbolTable(SymbolTable* table){
 	for(int i = 0; i < table->size; i++){
-		printf("Symbol ");
-		printf(table->data[i].name);
+		printf("Symbol %s", table->data[i].name);
 		printf("at address ");
 		char buf[32];
-		printf(ntos(table->data[i].address, buf , 10));
+		printf("%s", ntos(table->data[i].address, buf , 10));
 	}
 }
 

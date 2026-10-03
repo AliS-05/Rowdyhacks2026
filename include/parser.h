@@ -1,6 +1,6 @@
 #pragma once
-#include <assembler/asm_token.h>
-#include <assembler/vector.h>
+#include <token.h>
+#include <vector.h>
 
 
 typedef enum {

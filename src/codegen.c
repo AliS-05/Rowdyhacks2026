@@ -1,10 +1,10 @@
-#include <core/structures.h>
-#include <core/utilities.h>
-#include <core/memory.h>
-#include <assembler/codegen.h>
-#include <assembler/asm_parser.h>
-#include <assembler/symbol_table.h>
-
+#include <stdint.h>
+#include <stdlib.h>
+#include <codegen.h>
+#include <parser.h>
+#include <stdio.h>
+#include <symbol_table.h>
+#include <string.h>
 
 void ByteVectorInit(ByteVector* vec){
 	vec->size = 0;
@@ -41,9 +41,7 @@ int getRegisterCode(const char* reg) {
 	if(!strcmp(reg, "esi")) return 6;
 	if(!strcmp(reg, "edi")) return 7;
 
-	print("Unknown register: ");
-	print(reg);
-	print("\n");
+	printf("Unknown register: %s\n", reg);
 	return -1;
 }
 
@@ -319,7 +317,7 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			break;
 		}
 		default: {
-			print("Error encoding instruction from codegen.c\n");
+			printf("Error encoding instruction from codegen.c\n");
 			return;
 			break;
 		}

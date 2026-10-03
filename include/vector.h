@@ -1,8 +1,11 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include <assembler/asm_token.h>
-#include <core/structures.h>
+#include <token.h>
+#include <stddef.h>
+//#include <structures.h>
+
+
 struct Instruction;
 struct Symbol;
 
