@@ -23,11 +23,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+
+#define NUM_REGS  17          /* NEW: r[0]..r[16] (the check switch uses this) */
+#define MEM_SIZE  256         /* NEW: data memory: addresses 0..255 */
+#define MAX_INSTR 1024        /* NEW: biggest program we accept */
+#define MAX_STEPS 100000      /* NEW: stops a program that loops forever */
+
 #ifdef READ4_MAIN   /* ---- test helpers: only in the standalone build ---- */
 
 /* The test program */
 
-typedef enum { ADDI, ADD, SUB, LW, SW, BNE, LDB, STB, HALT } Op;
+/* CHANGED: each name is given the same number the switch uses */
+typedef enum { ADD = 1, SUB = 2, LDB = 3, STB = 4, ADDI = 5, LW = 6, SW = 7, BNE = 8, HALT = 255 } Op;
 typedef struct { Op op; int dest, a, b; } Inst;
 static Inst test_program[] = {
     { ADDI, 1, 1, 100 },   /* r1 = 100 */
@@ -45,10 +52,6 @@ static Inst test_program[] = {
     { HALT, 0, 0, 0   },
 };
 
-uint32_t expected[9] = { 0, 100, 300, 200, 0, 300, 44, 0, 15 };
-for (int i = 0; i < 9; i++)
-    if (r[i] != expected[i])
-        printf("FAIL r%d: got %u, expected %u\n", i, (unsigned)r[i], (unsigned)expected[i]);
 
 /* Writes the test program to a file. If cut_short is 1, the last 2 bytes are left off. */
 static int make_test_file(const char *path, int cut_short) {
@@ -57,9 +60,18 @@ static int make_test_file(const char *path, int cut_short) {
         printf("Could not create %s\n", path);
         return 1;
     }
-    size_t size = sizeof test_program;
+    /* CHANGED: turn each Inst into 4 bytes (op, dest, a, b), because main reads 4 bytes per instruction */
+    int n = sizeof test_program / sizeof test_program[0];
+    unsigned char bytes[sizeof test_program / sizeof test_program[0] * 4];
+    for (int i = 0; i < n; i++) {
+        bytes[i * 4 + 0] = (unsigned char)test_program[i].op;
+        bytes[i * 4 + 1] = (unsigned char)test_program[i].dest;
+        bytes[i * 4 + 2] = (unsigned char)test_program[i].a;
+        bytes[i * 4 + 3] = (unsigned char)test_program[i].b;    /* -2 is stored as 254 */
+    }
+    size_t size = n * 4;
     if (cut_short) size = size - 2;
-    fwrite(test_program, 1, size, f);
+    fwrite(bytes, 1, size, f);
     fclose(f);
     printf("Wrote %zu bytes to %s\n", size, path);
     return 0;
@@ -79,7 +91,7 @@ static int make_test_file(const char *path, int cut_short) {
  *          -1 = error (bad register or unknown opcode)
  */
 
-uint32_t r[17] = {0};   // r[1] to r[16]; r[0] is unused
+uint32_t r[NUM_REGS] = {0};   // r[1] to r[16]; r[0] is unused
 void add(int left, int right, int destination) {
     r[destination] = r[left] + r[right];
 }
@@ -88,18 +100,18 @@ void addi(int left, int immediate, int destination) {
     r[destination] = r[left] + (uint32_t)immediate;
 }
 
-void lw(int base, int offset, int destination, unsigned char memory[256]) {
+void lw(int base, int offset, int destination, unsigned char memory[MEM_SIZE]) {
     uint32_t address = r[base] + (uint32_t)offset;
-    if (address > 256 - 4) { printf("bad load at %u\n", (unsigned)address); return; }
+    if (address > MEM_SIZE - 4) { printf("bad load at %u\n", (unsigned)address); return; }
     r[destination] = (uint32_t)memory[address]              
                    | (uint32_t)memory[address + 1] << 8
                    | (uint32_t)memory[address + 2] << 16
                    | (uint32_t)memory[address + 3] << 24;
 }
 
-void sw(int base, int offset, int source, unsigned char memory[256]) {
+void sw(int base, int offset, int source, unsigned char memory[MEM_SIZE]) {
     uint32_t address = r[base] + (uint32_t)offset;          
-    if (address > 256 - 4) { printf("bad store at %u\n", (unsigned)address); return; }
+    if (address > MEM_SIZE - 4) { printf("bad store at %u\n", (unsigned)address); return; }
     memory[address]     = (unsigned char)(r[source]);       
     memory[address + 1] = (unsigned char)(r[source] >> 8);
     memory[address + 2] = (unsigned char)(r[source] >> 16);
@@ -114,44 +126,82 @@ void bne(int left, int right, int *pc, int offset) {
     }
 }
 
-void stb(int source, int address, unsigned char memory[256]) {
-    if (address < 0 || address >= 256) { printf("bad store at %d\n", address); return; }
+void stb(int source, int address, unsigned char memory[MEM_SIZE]) {
+    if (address < 0 || address >= MEM_SIZE) { printf("bad store at %d\n", address); return; }
     memory[address] = (unsigned char)(r[source]);
 }
 
-void ldb(int address, int destination, unsigned char memory[256]) {
-    if (address < 0 || address >= 256) { printf("bad load at %d\n", address); return; }
+void ldb(int address, int destination, unsigned char memory[MEM_SIZE]) {
+    if (address < 0 || address >= MEM_SIZE) { printf("bad load at %d\n", address); return; }
     r[destination] = (uint32_t)memory[address];
 }
 
-// test
-int execute_instruction(int op, int a, int b, int reg[4], unsigned char memory[256], int instr_num) {
+/* NEW: prints registers r0..r8 */
+static void print_registers(void) {
+    printf("   ");
+    for (int i = 0; i <= 8; i++) printf(" r%d=%u", i, (unsigned)r[i]);
+    printf("\n");
+}
 
-    /* check the register numbers (only 0..3 exist) */
-    if (a > 3 || ((op == 2 || op == 3) && b > 3)) {
-        printf("Error: register number too big in instruction %d\n", instr_num);
+// test
+int execute_instruction(int op, int a, int b, int c, unsigned char memory[MEM_SIZE], int *pc) {   /* CHANGED: int instr_num -> int *pc (BNE needs to change it) */
+    int instr_num = *pc;                  /* NEW: which instruction this is */
+ 
+    int imm = (int8_t)c;                  /* byte 3 as a number from -128 to 127 */
+    int stopped = 0;
+ 
+    /* check the register numbers before using them:
+       a destination must be r1..r16 (r0 is unused), a source can be r0..r16 */
+    int dest_bad = (a < 1 || a >= NUM_REGS);
+    int src_bad  = (a >= NUM_REGS);
+    int b_bad    = (b >= NUM_REGS);
+    int c_bad    = (c >= NUM_REGS);
+    int bad = 0;
+ 
+    switch (op) {
+        case 1: case 2:          bad = dest_bad || b_bad || c_bad; break;  /* add, sub: rd, rs1, rs2 */
+        case 3:                  bad = dest_bad || b_bad;          break;  /* ldb: rd, base   CHANGED */
+        case 4:                  bad = src_bad || b_bad;           break;  /* stb: rs, base   CHANGED */
+        case 5: case 6:          bad = dest_bad || b_bad;          break;  /* addi, lw: rd, rs1/base */
+        case 7:                  bad = src_bad || b_bad;           break;  /* sw: rs, base           */
+        case 8:                  bad = src_bad || b_bad;           break;  /* bne: rs1, rs2   NEW    */
+    }
+    if (bad) {
+        printf("Error: bad register number in instruction %d\n", instr_num);
         return -1;
     }
-
-    int stopped = 0;
+ 
+    int next_pc = *pc + 1;                /* NEW: normally go to the next instruction */
 
     /* execute the instruction */
     switch (op) {
-        case 1:                               /* mov a, number */
-            reg[a] = b;
+        case 1:                               /* add rd, rs1, rs2 */
+            add(b, c, a);
             break;
-        case 2:                               /* add a, b */
-            reg[a] = reg[a] + reg[b];
+        case 2:                               /* sub rd, rs1, rs2 */
+            r[a] = r[b] - r[c];
             break;
-        case 3:                               /* sub a, b */
-            reg[a] = reg[a] - reg[b];
+        case 3:                               /* ldb rd, base, offset : memory -> register (1 byte) */
+            ldb((int)(r[b] + imm), a, memory);    /* CHANGED: uses the ldb function, address = r[base] + offset */
             break;
-        case 4:                               /* ldb a, address : memory -> register */
-            reg[a] = memory[b];
+        case 4:                               /* stb rs, base, offset : register -> memory (1 byte) */
+            stb(a, (int)(r[b] + imm), memory);    /* CHANGED: uses the stb function, address = r[base] + offset */
             break;
-        case 5:                               /* stb a, address : register -> memory */
-            memory[b] = (unsigned char)reg[a];
+        case 5:                               /* addi rd, rs1, imm */
+            addi(b, imm, a);
             break;
+        case 6:                               /* lw rd, base, offset : memory -> register (4 bytes) */
+            lw(b, imm, a, memory);
+            break;
+        case 7:                               /* sw rs, base, offset : register -> memory (4 bytes) */
+            sw(b, imm, a, memory);
+            break;
+        case 8: {                             /* NEW: bne rs1, rs2, offset : if r[rs1] != r[rs2], jump */
+            int target = *pc;
+            bne(a, b, &target, imm);
+            if (target != *pc) next_pc = target;  /* branch taken: go to the target */
+            break;
+        }
         case 255:                             /* stop */
             stopped = 1;
             break;
@@ -159,16 +209,36 @@ int execute_instruction(int op, int a, int b, int reg[4], unsigned char memory[2
             printf("Error: unknown opcode %d in instruction %d\n", op, instr_num);
             return -1;
     }
-
+ 
     /* show the registers after each instruction */
-    printf("    eax=%d ebx=%d ecx=%d edx=%d\n", reg[0], reg[1], reg[2], reg[3]);
+    print_registers();
 
+    *pc = next_pc;                            /* NEW: move to the next instruction (or the BNE target) */
     return stopped;                           /* 1 if stop, otherwise 0 */
 }
-
+ 
 #ifdef READ4_MAIN   /* ---- main: only in the standalone build ---- */
 
+/* CHANGED: the expected-results check was moved here, into a function (a loop must be inside a function) */
+static int check_expected(void) {
+    uint32_t expected[9] = { 0, 100, 300, 200, 0, 300, 44, 0, 15 };
+    int fails = 0;
+    for (int i = 0; i < 9; i++)
+        if (r[i] != expected[i]) {
+            printf("FAIL r%d: got %u, expected %u\n", i, (unsigned)r[i], (unsigned)expected[i]);
+            fails++;
+        }
+    if (fails == 0) printf("PASS: all 9 registers match\n");
+    return fails ? 1 : 0;
+}
+
 int main(int argc, char *argv[]) {
+    int self_test = 0;                                                  /* NEW: --test */
+    if (argc == 2 && strcmp(argv[1], "--test") == 0) {                  /* NEW */
+        if (make_test_file("good.bin", 0) != 0) return 1;              /* NEW */
+        argv[1] = "good.bin";                                           /* NEW */
+        self_test = 1;                                                  /* NEW */
+    }
     if (argc == 3 && strcmp(argv[1], "--make-good") == 0) return make_test_file(argv[2], 0);
     if (argc == 3 && strcmp(argv[1], "--make-bad")  == 0) return make_test_file(argv[2], 1);
     if (argc != 2) {
@@ -187,8 +257,8 @@ int main(int argc, char *argv[]) {
     int count = 0;
 
     /* NEW: the CPU's registers and memory */
-    int reg[4] = {0};                     /* reg[0]=eax, reg[1]=ebx, reg[2]=ecx, reg[3]=edx */
-    unsigned char memory[256] = {0};      /* data memory for ldb / stb: addresses 0..255 */
+    unsigned char memory[MEM_SIZE] = {0};      /* data memory for ldb / stb: addresses 0..255 */
+    static unsigned char program[MAX_INSTR * 4];   /* NEW: the whole program, so BNE can jump back */
 
     while (1) {
         size_t n = fread(buf, 1, 4, f);   /* ask for 4 bytes; n = how many we really got */
@@ -204,6 +274,13 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        /* NEW: the program must fit in the program array */
+        if (count >= MAX_INSTR) {
+            printf("Error: program has more than %d instructions\n", MAX_INSTR);
+            fclose(f);
+            return 1;
+        }
+
         /* We have a full instruction: split it into its slots */
         int op = buf[0];
         int op_code = op << 1; // 7 bit opcode
@@ -212,17 +289,8 @@ int main(int argc, char *argv[]) {
 
         printf("instruction %d:  bytes %3d %3d %3d %3d   ->  op=%d a=%d b=%d\n",
                count, buf[0], buf[1], buf[2], buf[3], op, a, b);
+        memcpy(&program[count * 4], buf, 4);  /* CHANGED: save it now, run it after reading everything */
         count++;
-
-        /* NEW: run the instruction (see execute_instruction above main) */
-        int result = execute_instruction(op, a, b, reg, memory, count - 1);
-        if (result == -1) {                   /* error: stop safely */
-            fclose(f);
-            return 1;
-        }
-        if (result == 1) {                    /* stop instruction: stop reading */
-            break;
-        }
     }
 
     /* Danger 3: something went wrong while reading */
@@ -234,7 +302,28 @@ int main(int argc, char *argv[]) {
 
     fclose(f);
     printf("Read %d instructions successfully.\n", count);
-    printf("Final registers: eax=%d ebx=%d ecx=%d edx=%d\n", reg[0], reg[1], reg[2], reg[3]);   /* NEW */
+
+    /* NEW: run the program. pc = which instruction we're on; BNE can move it back */
+    int pc = 0;
+    for (int steps = 0; ; steps++) {
+        if (steps >= MAX_STEPS) {                 /* a loop that never ends */
+            printf("Error: stopped after %d steps (infinite loop?)\n", MAX_STEPS);
+            return 1;
+        }
+        if (pc < 0 || pc >= count) {              /* no HALT, or a jump outside the program */
+            printf("Error: pc=%d is outside the program (0..%d)\n", pc, count - 1);
+            return 1;
+        }
+        unsigned char *ins = &program[pc * 4];
+        int result = execute_instruction(ins[0], ins[1], ins[2], ins[3], memory, &pc);
+        if (result == -1) return 1;               /* error: stop safely */
+        if (result == 1)  break;                  /* HALT */
+    }
+
+    printf("Final registers:");                   /* CHANGED: r0..r8 instead of eax..edx */
+    for (int i = 0; i <= 8; i++) printf(" r%d=%u", i, (unsigned)r[i]);
+    printf("\n");
+    if (self_test) return check_expected();      /* NEW */
     return 0;
 }
 
