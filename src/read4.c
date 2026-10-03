@@ -19,12 +19,6 @@
  *   ./read4 good.bin
  *   ./read4 bad.bin
  *   ./read4 missing.bin              (file that doesn't exist)
- *
- * Instruction format (4 bytes):
- *   byte 0 = opcode   (1 = mov, 2 = add, 3 = sub, 4 = ldb, 5 = stb, 255 = stop)
- *   byte 1 = box a    (0 = eax, 1 = ebx, 2 = ecx, 3 = edx)
- *   byte 2 = number, box b, or memory address (for ldb / stb)
- *   byte 3 = unused   (0)
  */
 #include <stdio.h>
 #include <string.h>
@@ -32,15 +26,29 @@
 #ifdef READ4_MAIN   /* ---- test helpers: only in the standalone build ---- */
 
 /* The test program */
-static unsigned char test_program[] = {
-    1, 0, 5, 0,        /* mov eax, 5                          */
-    1, 1, 3, 0,        /* mov ebx, 3                          */
-    2, 0, 1, 0,        /* add eax, ebx    eax = 8             */
-    5, 0, 10, 0,       /* stb eax, [10]   NEW: memory[10] = 8 */
-    4, 2, 10, 0,       /* ldb ecx, [10]   NEW: ecx = 8        */
-    3, 2, 1, 0,        /* sub ecx, ebx    ecx = 5             */
-    255, 0, 0, 0       /* stop                                */
+
+typedef enum { ADDI, ADD, SUB, LW, SW, BNE, LDB, STB, HALT } Op;
+typedef struct { Op op; int dest, a, b; } Inst;
+static Inst test_program[] = {
+    { ADDI, 1, 1, 100 },   /* r1 = 100 */
+    { ADD,  2, 1, 1   },   /* r2 = 200 */
+    { ADD,  2, 2, 1   },   /* r2 = 300 (too big for one byte) */
+    { SUB,  3, 2, 1   },   /* r3 = r2 - r1 = 200 */
+    { SW,   2, 4, 16  },   /* word at memory[16] = 300 (r4 is 0) */
+    { LW,   5, 4, 16  },   /* r5 = 300 */
+    { STB,  2, 4, 32  },   /* byte at memory[32] = low byte of 300 = 44 */
+    { LDB,  6, 4, 32  },   /* r6 = 44 */
+    { ADDI, 7, 7, 3   },   /* r7 = 3, the loop counter */
+    { ADDI, 8, 8, 5   },   /* r8 += 5          <- loop top */
+    { ADDI, 7, 7, -1  },   /* r7 -= 1 */
+    { BNE,  7, 4, -2  },   /* if r7 != 0, back two instructions */
+    { HALT, 0, 0, 0   },
 };
+
+uint32_t expected[9] = { 0, 100, 300, 200, 0, 300, 44, 0, 15 };
+for (int i = 0; i < 9; i++)
+    if (r[i] != expected[i])
+        printf("FAIL r%d: got %u, expected %u\n", i, (unsigned)r[i], (unsigned)expected[i]);
 
 /* Writes the test program to a file. If cut_short is 1, the last 2 bytes are left off. */
 static int make_test_file(const char *path, int cut_short) {
@@ -71,7 +79,7 @@ static int make_test_file(const char *path, int cut_short) {
  *          -1 = error (bad register or unknown opcode)
  */
 
-uint32_t r[17] = {0};
+uint32_t r[17] = {0};   // r[1] to r[16]; r[0] is unused
 void add(int left, int right, int destination) {
     r[destination] = r[left] + r[right];
 }
@@ -83,7 +91,7 @@ void addi(int left, int immediate, int destination) {
 void lw(int base, int offset, int destination, unsigned char memory[256]) {
     uint32_t address = r[base] + (uint32_t)offset;
     if (address > 256 - 4) { printf("bad load at %u\n", (unsigned)address); return; }
-    r[destination] = (uint32_t)memory[address]              // lowest byte first
+    r[destination] = (uint32_t)memory[address]              
                    | (uint32_t)memory[address + 1] << 8
                    | (uint32_t)memory[address + 2] << 16
                    | (uint32_t)memory[address + 3] << 24;
@@ -104,6 +112,16 @@ void bne(int left, int right, int *pc, int offset) {
     if (r[left] != r[right]) {
         *pc += offset;
     }
+}
+
+void stb(int source, int address, unsigned char memory[256]) {
+    if (address < 0 || address >= 256) { printf("bad store at %d\n", address); return; }
+    memory[address] = (unsigned char)(r[source]);
+}
+
+void ldb(int address, int destination, unsigned char memory[256]) {
+    if (address < 0 || address >= 256) { printf("bad load at %d\n", address); return; }
+    r[destination] = (uint32_t)memory[address];
 }
 
 // test
