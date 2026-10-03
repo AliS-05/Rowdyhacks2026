@@ -131,58 +131,25 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		}
 
 		case INST_ADD: {
-			if(inst->operand1.type == MEMORY){
-				//opcode 01 for op2 = r16/32
-				if(inst->operand2.type == REGISTER){ 
-					//add [eax], ebx
-					ByteVectorPush(byteVector, 0x01);
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2 = getRegisterCode(inst->operand2.strValue);
+			int operand3 = inst->operand3.intValue;
 
-					int sourceReg = getRegisterCode(inst->operand2.strValue);
-					int destinationReg = getRegisterCode(inst->operand1.strValue);
+			uint32_t instruction = 0;
 
-					uint8_t modrm = getMod(0, sourceReg, destinationReg);
-					ByteVectorPush(byteVector, modrm);
-					break;
-				} else{ 
-					//else immediate ie add [eax], 5
-					//0x81
-					ByteVectorPush(byteVector, 0x81);
-					int destinationReg = getRegisterCode(inst->operand1.strValue);
-					uint8_t modrm = getMod(0, 0, destinationReg); // 11101xx
-					ByteVectorPush(byteVector, modrm);
-					ByteVectorWrite32(byteVector, inst->operand2.intValue);
-					break;
-				}
+			uint32_t opcode = 0b010011;
 
-			}	
-			//add eax, [myVar]
-			//add dest, source
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){ // REG MEM case 0x03
-				ByteVectorPush(byteVector, 0x03);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				int sourceReg = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(0, destinationReg, sourceReg);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			//NOTE check if operand is REG REG or REG IMM. REG REG == 0x01 REG IMM == 0x81
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
-				ByteVectorPush(byteVector, 0x81);
-				int reg1 = getRegisterCode(inst->operand1.strValue);
-				uint8_t modrm = getMod(3, 0, reg1); // 11101xx
-				ByteVectorPush(byteVector, modrm);
-				ByteVectorWrite32(byteVector, inst->operand2.intValue);
-				break;
-			} 
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
-				ByteVectorPush(byteVector, 0x01);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				int sourceReg = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(3, sourceReg, destinationReg);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			break;
+			instruction |= opcode;
+			uint32_t funct3 = 0b000;
+			instruction |= (funct3 << 12);
+
+			instruction |= (register1 << 15);
+			instruction |= (register2 << 20);
+
+			uint32_t funct7 = 0b0000000;
+			instruction |= (funct7 << 25);
+
+			ByteVectorWrite32(byteVector, instruction);
 		}
 
 		case INST_SUB: {
