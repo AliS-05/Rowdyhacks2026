@@ -79,6 +79,33 @@ void add(int left, int right, int destination) {
 void addi(int left, int immediate, int destination) {
     r[destination] = r[left] + (uint32_t)immediate;
 }
+
+void lw(int base, int offset, int destination, unsigned char memory[256]) {
+    uint32_t address = r[base] + (uint32_t)offset;
+    if (address > 256 - 4) { printf("bad load at %u\n", (unsigned)address); return; }
+    r[destination] = (uint32_t)memory[address]              // lowest byte first
+                   | (uint32_t)memory[address + 1] << 8
+                   | (uint32_t)memory[address + 2] << 16
+                   | (uint32_t)memory[address + 3] << 24;
+}
+
+void sw(int base, int offset, int source, unsigned char memory[256]) {
+    uint32_t address = r[base] + (uint32_t)offset;          
+    if (address > 256 - 4) { printf("bad store at %u\n", (unsigned)address); return; }
+    memory[address]     = (unsigned char)(r[source]);       
+    memory[address + 1] = (unsigned char)(r[source] >> 8);
+    memory[address + 2] = (unsigned char)(r[source] >> 16);
+    memory[address + 3] = (unsigned char)(r[source] >> 24);
+}
+
+// If the Main Loop auto incriments the PC, then the offset should be -1 to go back to the same instruction.
+// If the Main Loop does not auto increment the PC, then the offset should be 0 to go to the next instruction.
+void bne(int left, int right, int *pc, int offset) {
+    if (r[left] != r[right]) {
+        *pc += offset;
+    }
+}
+
 // test
 int execute_instruction(int op, int a, int b, int reg[4], unsigned char memory[256], int instr_num) {
 
