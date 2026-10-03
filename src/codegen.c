@@ -172,9 +172,7 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			uint32_t opcode = 0b0010011;
 			instruction |= immediate << 20;
 			instruction |= register2 << 15;
-
-			uint32_t funct3 = 0b000;
-			instruction |= funct3 << 12;
+			instruction |= 0b000 << 12;
 			instruction |= register1 << 7;
 			instruction |= opcode;
 			ByteVectorWrite32(byteVector, instruction);
