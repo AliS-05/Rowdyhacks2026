@@ -30,18 +30,18 @@
 typedef enum { ADDI, ADD, SUB, LW, SW, BNE, LDB, STB, HALT } Op;
 typedef struct { Op op; int dest, a, b; } Inst;
 static Inst test_program[] = {
-    { ADDI, 1, 0, 100 },   /* r0 = 100 */
-    { ADD,  2, 0, 0   },   /* r1 = 200 */
-    { ADD,  2, 1, 0   },   /* r1 = 300 (too big for one byte) */
-    { SUB,  3, 1, 0   },   /* r2 = r1 - r0 = 200 (wrong order gives a huge number) */
-    { SW,   2, 3, 16  },   /* word at memory[16] = 300 (r3 is 0) */
-    { LW,   3, 3, 16  },   /* r4 = 300 (44 if only one byte is moved) */
-    { STB,  2, 3, 32  },   /* byte at memory[32] = low byte of 300 = 44 */
-    { LDB,  6, 3, 32  },   /* r5 = 44 */
-    { ADDI, 7, 6, 3   },   /* r6 = 3, the loop counter */
-    { ADDI, 8, 7, 5   },   /* r7 += 5          <- loop top */
-    { ADDI, 7, 6, -1  },   /* r6 -= 1 */
-    { BNE,  7, 3, -2  },   /* if r6 != 0, back two instructions */
+    { ADDI, 1, 1, 100 },   /* r1 = 100 */
+    { ADD,  2, 1, 1   },   /* r2 = 200 */
+    { ADD,  2, 2, 1   },   /* r2 = 300 (too big for one byte) */
+    { SUB,  3, 2, 1   },   /* r3 = r2 - r1 = 200 */
+    { SW,   2, 4, 16  },   /* word at memory[16] = 300 (r4 is 0) */
+    { LW,   5, 4, 16  },   /* r5 = 300 */
+    { STB,  2, 4, 32  },   /* byte at memory[32] = low byte of 300 = 44 */
+    { LDB,  6, 4, 32  },   /* r6 = 44 */
+    { ADDI, 7, 7, 3   },   /* r7 = 3, the loop counter */
+    { ADDI, 8, 8, 5   },   /* r8 += 5          <- loop top */
+    { ADDI, 7, 7, -1  },   /* r7 -= 1 */
+    { BNE,  7, 4, -2  },   /* if r7 != 0, back two instructions */
     { HALT, 0, 0, 0   },
 };
 
