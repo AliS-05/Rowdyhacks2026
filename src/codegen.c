@@ -137,12 +137,21 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 
 			       }
 		case INST_ADDI: {
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2 = getRegisterCode(inst->operand2.strValue);
+			int immediate = inst->operand3.intValue;
 
+			uint32_t instruction = 0;
+			uint32_t opcode = 0b0010011;
+			instruction |= immediate << 20;
+			instruction |= register2 << 15;
+
+			uint32_t funct3 = 0b000;
+			instruction |= funct3 << 12;
+			instruction |= register1 << 7;
+			instruction |= opcode;
+			ByteVectorWrite32(byteVector, instruction);
 				}
-
-		case INST_ADD: {
-
-		}
 
 		case INST_MOV: {
 			encodeMove(inst, byteVector);
