@@ -152,145 +152,147 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			ByteVectorWrite32(byteVector, instruction);
 		}
 
-		case INST_SUB: {
-			// REG IMM == 0x81 REG REG == 0x29 ?
-			if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
-				//sub [eax], 8
-				ByteVectorPush(byteVector, 0x81);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				//101 = 5 specifies SUB in op-family 0x81
-				uint8_t modrm = getMod(0, 0b101, destinationReg);
-				ByteVectorPush(byteVector, modrm);
-				ByteVectorWrite32(byteVector, inst->operand2.intValue);
-				break;
-			}
-			if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
-				//sub [eax], ebx
-				ByteVectorPush(byteVector, 0x29);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				int sourceReg = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(0, destinationReg, sourceReg);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
-				// sub eax, [ebx]
-				ByteVectorPush(byteVector, 0x2B);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				int sourceReg = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(0, destinationReg, sourceReg);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
-				ByteVectorPush(byteVector, 0x81);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				uint8_t modrm =	getMod(3, 0b101, destinationReg);
-				ByteVectorPush(byteVector, modrm);
-				ByteVectorWrite32(byteVector, inst->operand2.intValue);
-				break;
-			} else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
-				// sub eax, ebx = eax - ebx
-				ByteVectorPush(byteVector, 0x29);
-				int destinationReg = getRegisterCode(inst->operand1.strValue);
-				int sourceReg = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(3, destinationReg, sourceReg);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			break;
-		}
+		
 
-		case INST_CMP: {
-			if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
-				ByteVectorPush(byteVector, 0x39);
-				int reg1 = getRegisterCode(inst->operand1.strValue);
-				int reg2 = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(0, reg2, reg1);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			}
-			else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
-				ByteVectorPush(byteVector, 0x39);
-				int reg1 = getRegisterCode(inst->operand1.strValue);
-				int reg2 = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(3, reg2, reg1);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			} else if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
-				//CMP eax, [ebx]
-				ByteVectorPush(byteVector, 0x3B);
-				int reg1 = getRegisterCode(inst->operand1.strValue);
-				int reg2 = getRegisterCode(inst->operand2.strValue);
-				uint8_t modrm = getMod(0, reg1, reg2);
-				ByteVectorPush(byteVector, modrm);
-				break;
-			} else if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
-				ByteVectorPush(byteVector, 0x81);
-				int destReg = getRegisterCode(inst->operand1.strValue);
-				//op-family 0x81 code 7
-				uint8_t modrm = getMod(0b011, 0b111, destReg);
-				ByteVectorPush(byteVector, modrm);
-				ByteVectorWrite32(byteVector, inst->operand2.intValue);
-				break;
-			} else if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
-				ByteVectorPush(byteVector, 0x81);
-				int destReg = getRegisterCode(inst->operand1.strValue);
-				//op-family 0x81 code 7
-				uint8_t modrm = getMod(0b0, 0b111, destReg);
-				ByteVectorPush(byteVector, modrm);
-				ByteVectorWrite32(byteVector, inst->operand2.intValue);
-				break;
-			}
-			break;
-		}
-		case INST_CALL: {
-			ByteVectorPush(byteVector, 0xE8);
-			int laddr = symbolTableLookup(table, inst->operand1.strValue);
-			int rel = laddr - (inst->address + 5);
-			ByteVectorWrite32(byteVector, rel);
-			break;
-		}
-		case INST_JE: {
-			ByteVectorPush(byteVector, 0x0F);
-			ByteVectorPush(byteVector, 0x84);
-			int laddr = symbolTableLookup(table, inst->operand1.strValue);
-			int rel = laddr - (inst->address + 6);
-			ByteVectorWrite32(byteVector, rel);
-			break;
-		}
-		case INST_PUSH: {
-			if(inst->operand1.type == REGISTER){
-				int reg = getRegisterCode(inst->operand1.strValue);
-				ByteVectorPush(byteVector, 0x50 + reg);
-			}
-			break;
-		}
-		case INST_POP: {
-			if(inst->operand1.type == REGISTER){
-				int reg = getRegisterCode(inst->operand1.strValue);
-				ByteVectorPush(byteVector, 0x58 + reg);
-			}
-			break;
-		}
-		case INST_JNE: {
-			ByteVectorPush(byteVector, 0x0F);
-			ByteVectorPush(byteVector, 0x85);
-			int laddr = symbolTableLookup(table, inst->operand1.strValue);
-			int rel = laddr - (inst->address + 6);
-			ByteVectorWrite32(byteVector, rel);
-			break;
-		}
-		case INST_NOP: {
-			ByteVectorPush(byteVector, 0x90);
-			break;
-		}
-		default: {
-			print("Error encoding instruction from codegen.c\n");
-			return;
-			break;
-		}
-	}
+	// 	case INST_SUB: {
+	// 		// REG IMM == 0x81 REG REG == 0x29 ?
+	// 		if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
+	// 			//sub [eax], 8
+	// 			ByteVectorPush(byteVector, 0x81);
+	// 			int destinationReg = getRegisterCode(inst->operand1.strValue);
+	// 			//101 = 5 specifies SUB in op-family 0x81
+	// 			uint8_t modrm = getMod(0, 0b101, destinationReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			ByteVectorWrite32(byteVector, inst->operand2.intValue);
+	// 			break;
+	// 		}
+	// 		if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
+	// 			//sub [eax], ebx
+	// 			ByteVectorPush(byteVector, 0x29);
+	// 			int destinationReg = getRegisterCode(inst->operand1.strValue);
+	// 			int sourceReg = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(0, destinationReg, sourceReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		}
+	// 		else if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
+	// 			// sub eax, [ebx]
+	// 			ByteVectorPush(byteVector, 0x2B);
+	// 			int destinationReg = getRegisterCode(inst->operand1.strValue);
+	// 			int sourceReg = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(0, destinationReg, sourceReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		}
+	// 		else if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
+	// 			ByteVectorPush(byteVector, 0x81);
+	// 			int destinationReg = getRegisterCode(inst->operand1.strValue);
+	// 			uint8_t modrm =	getMod(3, 0b101, destinationReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			ByteVectorWrite32(byteVector, inst->operand2.intValue);
+	// 			break;
+	// 		} else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
+	// 			// sub eax, ebx = eax - ebx
+	// 			ByteVectorPush(byteVector, 0x29);
+	// 			int destinationReg = getRegisterCode(inst->operand1.strValue);
+	// 			int sourceReg = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(3, destinationReg, sourceReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		}
+	// 		break;
+	// 	}
+
+	// 	case INST_CMP: {
+	// 		if(inst->operand1.type == MEMORY && inst->operand2.type == REGISTER){
+	// 			ByteVectorPush(byteVector, 0x39);
+	// 			int reg1 = getRegisterCode(inst->operand1.strValue);
+	// 			int reg2 = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(0, reg2, reg1);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		}
+	// 		else if(inst->operand1.type == REGISTER && inst->operand2.type == REGISTER){
+	// 			ByteVectorPush(byteVector, 0x39);
+	// 			int reg1 = getRegisterCode(inst->operand1.strValue);
+	// 			int reg2 = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(3, reg2, reg1);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		} else if(inst->operand1.type == REGISTER && inst->operand2.type == MEMORY){
+	// 			//CMP eax, [ebx]
+	// 			ByteVectorPush(byteVector, 0x3B);
+	// 			int reg1 = getRegisterCode(inst->operand1.strValue);
+	// 			int reg2 = getRegisterCode(inst->operand2.strValue);
+	// 			uint8_t modrm = getMod(0, reg1, reg2);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			break;
+	// 		} else if(inst->operand1.type == REGISTER && inst->operand2.type == NUMBER){
+	// 			ByteVectorPush(byteVector, 0x81);
+	// 			int destReg = getRegisterCode(inst->operand1.strValue);
+	// 			//op-family 0x81 code 7
+	// 			uint8_t modrm = getMod(0b011, 0b111, destReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			ByteVectorWrite32(byteVector, inst->operand2.intValue);
+	// 			break;
+	// 		} else if(inst->operand1.type == MEMORY && inst->operand2.type == NUMBER){
+	// 			ByteVectorPush(byteVector, 0x81);
+	// 			int destReg = getRegisterCode(inst->operand1.strValue);
+	// 			//op-family 0x81 code 7
+	// 			uint8_t modrm = getMod(0b0, 0b111, destReg);
+	// 			ByteVectorPush(byteVector, modrm);
+	// 			ByteVectorWrite32(byteVector, inst->operand2.intValue);
+	// 			break;
+	// 		}
+	// 		break;
+	// 	}
+	// 	case INST_CALL: {
+	// 		ByteVectorPush(byteVector, 0xE8);
+	// 		int laddr = symbolTableLookup(table, inst->operand1.strValue);
+	// 		int rel = laddr - (inst->address + 5);
+	// 		ByteVectorWrite32(byteVector, rel);
+	// 		break;
+	// 	}
+	// 	case INST_JE: {
+	// 		ByteVectorPush(byteVector, 0x0F);
+	// 		ByteVectorPush(byteVector, 0x84);
+	// 		int laddr = symbolTableLookup(table, inst->operand1.strValue);
+	// 		int rel = laddr - (inst->address + 6);
+	// 		ByteVectorWrite32(byteVector, rel);
+	// 		break;
+	// 	}
+	// 	case INST_PUSH: {
+	// 		if(inst->operand1.type == REGISTER){
+	// 			int reg = getRegisterCode(inst->operand1.strValue);
+	// 			ByteVectorPush(byteVector, 0x50 + reg);
+	// 		}
+	// 		break;
+	// 	}
+	// 	case INST_POP: {
+	// 		if(inst->operand1.type == REGISTER){
+	// 			int reg = getRegisterCode(inst->operand1.strValue);
+	// 			ByteVectorPush(byteVector, 0x58 + reg);
+	// 		}
+	// 		break;
+	// 	}
+	// 	case INST_JNE: {
+	// 		ByteVectorPush(byteVector, 0x0F);
+	// 		ByteVectorPush(byteVector, 0x85);
+	// 		int laddr = symbolTableLookup(table, inst->operand1.strValue);
+	// 		int rel = laddr - (inst->address + 6);
+	// 		ByteVectorWrite32(byteVector, rel);
+	// 		break;
+	// 	}
+	// 	case INST_NOP: {
+	// 		ByteVectorPush(byteVector, 0x90);
+	// 		break;
+	// 	}
+	// 	default: {
+	// 		print("Error encoding instruction from codegen.c\n");
+	// 		return;
+	// 		break;
+	// 	}
+	// }
 }
 
 
