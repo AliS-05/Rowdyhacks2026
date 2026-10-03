@@ -28,7 +28,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-
+#include <stdint.h>
 #ifdef READ4_MAIN   /* ---- test helpers: only in the standalone build ---- */
 
 /* The test program */
@@ -70,6 +70,16 @@ static int make_test_file(const char *path, int cut_short) {
  *           1 = this was the stop instruction
  *          -1 = error (bad register or unknown opcode)
  */
+
+uint32_t r[17] = {0};
+void add(int left, int right, int destination) {
+    r[destination] = r[left] + r[right];
+}
+
+void addi(int left, int immediate, int destination) {
+    r[destination] = r[left] + (uint32_t)immediate;
+}
+// test
 int execute_instruction(int op, int a, int b, int reg[4], unsigned char memory[256], int instr_num) {
 
     /* check the register numbers (only 0..3 exist) */
