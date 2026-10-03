@@ -133,6 +133,8 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 
 			ByteVectorWrite32(byteVector, instruction);
 	      	}
+
+
 		case INST_STD: {
 
 			       }
@@ -193,7 +195,23 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 
 			ByteVectorWrite32(byteVector, instruction);
 		}
+		
+		case INST_SUB:{
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2 = getRegisterCode(inst->operand2.strValue);
+			int register3 = getRegisterCode(inst->operand3.strValue);
 
+			uint32_t instruction = 0;
+			uint32_t opcode = 0b0110011;
+
+			instruction |= opcode;
+			instruction |= (register1 << 7);
+			instruction |= (0b000 << 12);
+			instruction |= (register2 << 15);
+			instruction |= (register3 << 20);
+			instruction |= (0b0100000 << 25);
+			ByteVectorWrite32(byteVector, instruction);
+		}
 		
 
 	// 	case INST_SUB: {
