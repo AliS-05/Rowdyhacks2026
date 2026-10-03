@@ -30,26 +30,25 @@
 typedef enum { ADDI, ADD, SUB, LW, SW, BNE, LDB, STB, HALT } Op;
 typedef struct { Op op; int dest, a, b; } Inst;
 static Inst test_program[] = {
-    { ADDI, 0, 0, 100 },   /* r0 = 100 */
-    { ADD,  1, 0, 0   },   /* r1 = 200 */
-    { ADD,  1, 1, 0   },   /* r1 = 300 (too big for one byte) */
-    { SUB,  2, 1, 0   },   /* r2 = r1 - r0 = 200 (wrong order gives a huge number) */
-    { SW,   1, 3, 16  },   /* word at memory[16] = 300 (r3 is 0) */
-    { LW,   4, 3, 16  },   /* r4 = 300 (44 if only one byte is moved) */
-    { STB,  1, 3, 32  },   /* byte at memory[32] = low byte of 300 = 44 */
-    { LDB,  5, 3, 32  },   /* r5 = 44 */
-    { ADDI, 6, 6, 3   },   /* r6 = 3, the loop counter */
-    { ADDI, 7, 7, 5   },   /* r7 += 5          <- loop top */
-    { ADDI, 6, 6, -1  },   /* r6 -= 1 */
-    { BNE,  6, 3, -2  },   /* if r6 != 0, back two instructions */
+    { ADDI, 1, 0, 100 },   /* r0 = 100 */
+    { ADD,  2, 0, 0   },   /* r1 = 200 */
+    { ADD,  2, 1, 0   },   /* r1 = 300 (too big for one byte) */
+    { SUB,  3, 1, 0   },   /* r2 = r1 - r0 = 200 (wrong order gives a huge number) */
+    { SW,   2, 3, 16  },   /* word at memory[16] = 300 (r3 is 0) */
+    { LW,   3, 3, 16  },   /* r4 = 300 (44 if only one byte is moved) */
+    { STB,  2, 3, 32  },   /* byte at memory[32] = low byte of 300 = 44 */
+    { LDB,  6, 3, 32  },   /* r5 = 44 */
+    { ADDI, 7, 6, 3   },   /* r6 = 3, the loop counter */
+    { ADDI, 8, 7, 5   },   /* r7 += 5          <- loop top */
+    { ADDI, 7, 6, -1  },   /* r6 -= 1 */
+    { BNE,  7, 3, -2  },   /* if r6 != 0, back two instructions */
     { HALT, 0, 0, 0   },
 };
 
-uint32_t expected[8] = { 100, 300, 200, 0, 300, 44, 0, 15 };
-for (int i = 0; i < 8; i++)
+uint32_t expected[9] = { 0, 100, 300, 200, 0, 300, 44, 0, 15 };
+for (int i = 0; i < 9; i++)
     if (r[i] != expected[i])
         printf("FAIL r%d: got %u, expected %u\n", i, (unsigned)r[i], (unsigned)expected[i]);
-
 
 /* Writes the test program to a file. If cut_short is 1, the last 2 bytes are left off. */
 static int make_test_file(const char *path, int cut_short) {
@@ -80,7 +79,7 @@ static int make_test_file(const char *path, int cut_short) {
  *          -1 = error (bad register or unknown opcode)
  */
 
-uint32_t r[17] = {0};
+uint32_t r[17] = {0};   // r[1] to r[16]; r[0] is unused
 void add(int left, int right, int destination) {
     r[destination] = r[left] + r[right];
 }
