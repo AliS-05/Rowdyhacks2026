@@ -14,7 +14,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">RowdyHacks 2026 · CPU emulator written in C</div>
+    <div class="eyebrow">RowdyHacks 2026 · CPU emulator</div>
     <h1>Watch one instruction run through our CPU</h1>
     <p class="lede">Pick a preset and press Play. The board shows what <code>emu/emu_cpu.c</code> does with those 4 bytes: fetch, decode, read the registers, compute, read or write data memory, write the result back and move to the next instruction.</p>
     <ul class="specs">
@@ -145,13 +145,10 @@ add r3, r1, r2</textarea>
     <p>Every instruction is 4 bytes: <code>op · rd · rs1 · byte3</code>. Byte 3 is a register for add and sub, and a signed number from −128 to 127 for everything else.</p>
     <div class="table-scroll">
       <table>
-        <thead><tr><th>op</th><th>name</th><th>byte 1</th><th>byte 2</th><th>byte 3</th><th>what it does</th><th>animation</th></tr></thead>
+        <thead><tr><th>op</th><th>name</th><th>Operand 1</th><th>Operand 2</th><th>Operand 3</th><th>what it does</th><th>animation</th></tr></thead>
         <tbody id="isaBody"></tbody>
       </table>
     </div>
   </section>
-
-  <footer>Built from <code>emu/emu_cpu.c</code> in the Rowdyhacks2026 repo. The page models the emulator in JavaScript; the C code is unchanged.</footer>
-</div>
 </body>
 </html>

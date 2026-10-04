@@ -51,15 +51,15 @@
     [3, "ldb", "rd", "base", "offset", "r[rd] = 1 byte at r[base] + offset"],
     [4, "stb", "rs", "base", "offset", "1 byte at r[base] + offset = r[rs]"],
     [5, "addi", "rd", "rs1", "number", "r[rd] = r[rs1] + number"],
-    [6, "lw", "rd", "base", "offset", "r[rd] = 4 bytes at r[base] + offset"],
-    [7, "sw", "rs", "base", "offset", "4 bytes at r[base] + offset = r[rs]"],
+    [6, "lw", "rd", "offset(base)", "—", "r[rd] = 4 bytes at r[base] + offset"],
+    [7, "sw", "rs", "offset(base)", "—", "4 bytes at r[base] + offset = r[rs]"],
     [8, "bne", "rs1", "rs2", "jump", "if r[rs1] != r[rs2], jump that many instructions"],
-    [255, "stop", "—", "—", "—", "halt the program"],
+    [255, "Halt", "—", "—", "—", "halt the program"],
   ];
   const STAGES = ["Fetch", "Decode", "Read", "Execute", "Memory", "Write back", "Next PC"];
   const MEM_BYTES = 256;
   const NAMES = { 1: "add", 2: "sub", 3: "ldb", 4: "stb", 5: "addi", 6: "lw", 7: "sw", 255: "stop" };
-  const ANIMATED = ["add", "sub", "ldb", "stb", "addi", "lw", "sw", "stop"];
+  const ANIMATED = ["add", "sub", "ldb", "stb", "addi", "lw", "sw", "Halt"];
   const isLoad = (op) => op === 3 || op === 6;
   const isStore = (op) => op === 4 || op === 7;
   const memSize = (op) => (op === 6 || op === 7 ? 4 : 1);
