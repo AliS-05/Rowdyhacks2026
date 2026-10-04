@@ -80,6 +80,7 @@ int main(int argc, char *argv[]) {
 	FILE* jsonOutput = fopen("cpu_json_output.json", "w");
 	initCurrentJSONInstruction();
 	if (run_program(program, count, jsonOutput) != 0) return 1;
+
 	fclose(jsonOutput);
 	/* 3. Show the result */
 	printf("Final registers:");

@@ -89,6 +89,34 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			break;
 
 	      	}
+		case INST_LB: {
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2;
+			uint32_t funct7 = 0b0000000;
+			if(inst->operand2.type == EXPRESSION){
+				register2 = getRegisterCode(inst->operand2.strValue);
+				funct7 = inst->operand2.offset;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+
+			//int operand3 = inst->operand3.intValue;
+			int rd = getRegisterCode(inst->operand1.strValue);
+			int rs1 = getRegisterCode(inst->operand2.strValue);
+			int immediate = inst->operand2.offset;
+
+			uint32_t instruction = 0;
+
+			instruction |= 0x03;
+			instruction |= rd << 7;
+			instruction |= 0b0 << 13;
+			instruction |= rs1 << 15;
+			instruction |= (immediate & 0xFFF) << 20;
+
+			ByteVectorWrite32(byteVector, instruction);
+			break;
+
+		}
 		case INST_SW: {
 			int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2;
@@ -116,6 +144,35 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 
 			ByteVectorWrite32(byteVector, instruction);
 			break;
+		}
+		case INST_SB: {
+			int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2;
+			uint32_t funct7 = 0b0000000;
+			if(inst->operand2.type == EXPRESSION){
+				register2 = getRegisterCode(inst->operand2.strValue);
+				funct7 = inst->operand2.offset;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+			//int operand3 = inst->operand3.intValue;
+			
+			int rs2 = getRegisterCode(inst->operand1.strValue);
+			int rs1 = getRegisterCode(inst->operand2.strValue);
+			int immediate = inst->operand2.offset;
+
+			uint32_t instruction = 0;
+
+			instruction |= 0x23;
+			instruction |= (immediate & 0x1F) << 7;
+			instruction |= 0b0 << 12;
+			instruction |= rs1 << 15;
+			instruction |= rs2 << 20;
+			instruction |= ((immediate >> 5) & 0x7F) << 25;
+
+			ByteVectorWrite32(byteVector, instruction);
+			break;
+
 		}
 		case INST_ADDI: {
 			int register1, register2, immediate;
@@ -149,20 +206,20 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		case INST_BNE: {
 			int register1, register2, immediate;
 			if(inst->operand1.type == NUMBER){
-			register1 = inst->operand1.intValue;
+				register1 = inst->operand1.intValue;
 			}else{
-			register1 = getRegisterCode(inst->operand1.strValue);
+				register1 = getRegisterCode(inst->operand1.strValue);
 			}
 
 			if(inst->operand2.type == NUMBER){
-			register2 = inst->operand2.intValue;
+				register2 = inst->operand2.intValue;
 			}else{
-			register2 = getRegisterCode(inst->operand2.strValue);
+				register2 = getRegisterCode(inst->operand2.strValue);
 			}
 			if(inst->operand3.type == NUMBER){
-			immediate = inst->operand3.intValue;
+				immediate = inst->operand3.intValue;
 			}else{
-			immediate = getRegisterCode(inst->operand3.strValue);
+				immediate = getRegisterCode(inst->operand3.strValue);
 			}
 
 			uint32_t instruction = 0;

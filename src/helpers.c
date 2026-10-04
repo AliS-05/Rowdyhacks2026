@@ -8,7 +8,7 @@
 //to use pass a buffer of max digits of new base
 // uint32_t ipAddress -> base 10 number
 //ntos(ipAddress, buf (len 4), 10);
-char* ntos(uint32_t value, char* buf, uint32_t base)
+char* ntos(int value, char* buf, uint32_t base)
 {
 	if (base < 2 || base > 16) {
 		buf[0] = '\0';
@@ -18,31 +18,35 @@ char* ntos(uint32_t value, char* buf, uint32_t base)
 	static const char digits[] = "0123456789ABCDEF";
 
 	int i = 0;
+	int negative = 0;
+	uint32_t magnitude;
 
-	if (value == 0) {
+	if (value < 0 && base == 10) {
+		negative = 1;
+		magnitude = -(uint32_t)value;
+	} else {
+		magnitude = (uint32_t)value;
+	}
+
+	if (magnitude == 0) {
 		buf[i++] = '0';
-		buf[i] = '\0';
-		return NULL;
+	} else {
+		while (magnitude > 0) {
+			buf[i++] = digits[magnitude % base];
+			magnitude /= base;
+		}
 	}
 
-	while (value > 0) {
-		buf[i++] = digits[value % base];
-		value /= base;
-	}
+	if (negative)
+		buf[i++] = '-';
 
 	buf[i] = '\0';
 
-	int left = 0;
-	int right = i - 1;
-
-	while (left < right) {
+	for (int left = 0, right = i - 1; left < right; left++, right--) {
 		char temp = buf[left];
 		buf[left] = buf[right];
 		buf[right] = temp;
-		left++;
-		right--;
 	}
+
 	return buf;
 }
-
-

@@ -133,11 +133,15 @@ extern long currentAddress;
 
 MnemonicType strToInstructionType(const char* str) {
 	if (!strcmp(str, "lw"))   return INST_LW;
+	if (!strcmp(str, "lb"))   return INST_LB;
 	if (!strcmp(str, "sw"))   return INST_SW;
+	if (!strcmp(str, "sb"))   return INST_SB;
 	if (!strcmp(str, "addi")) return INST_ADDI;
 	if (!strcmp(str, "add"))  return INST_ADD;
 	if (!strcmp(str, "sub"))  return INST_SUB;
 	if (!strcmp(str, "bne"))  return INST_BNE;
+
+
 	if (!strcmp(str, "halt")) return INST_HALT;
 	if (!strcmp(str, "mov"))  return INST_MOV;
 	if (!strcmp(str, "jmp"))  return INST_JMP;
@@ -157,7 +161,9 @@ MnemonicType strToInstructionType(const char* str) {
 const char* mnemonicTypeToStr(MnemonicType type){
 	switch(type){
 		case INST_LW: return "lw";
+		case INST_LB: return "lb";
 		case INST_SW: return "sw";
+		case INST_SB: return "sb";
 		case INST_ADDI: return "addi";
 		case INST_ADD: return "add";
 		case INST_SUB: return "sub";
@@ -280,7 +286,7 @@ void expect(Token* tokenArray, int* index, TokenType expectedType){
 }
 
 Operand parseOperand(TokVector* vec, int* pos){
-	Operand op;
+	Operand op = {0};
 	Token t = vec->data[*pos]; //t is current Token
 	op.type = t.type;
 	op.line = t.line;
@@ -290,8 +296,11 @@ Operand parseOperand(TokVector* vec, int* pos){
 		op.type = MEMORY; // dont want it to stay LBRACKET
 		op.strValue = vec->data[*pos].strValue; //copying register value
 		(*pos)++; //done with register now sitting at ] which gets skipped below
-	} 
-	else if(t.type == NUMBER){
+	}else if(t.type == MINUS && (peek(vec->data, *pos).type == NUMBER)){
+		(*pos)++;
+		op.type = NUMBER;
+		op.intValue = -vec->data[*pos].intValue;
+	} else if(t.type == NUMBER){
 		//LW r1, 16(r2) -> ID REG COMMA 
 		//index, ie 16(R4)
 		if (peek(vec->data, *pos).type == OPEN) {

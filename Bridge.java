@@ -270,15 +270,20 @@ public class Bridge {
 
     /* Reads a tool's location from an environment variable, or uses the default. */
     static Path toolPath(String envName, String defaultPath) {
-        String value = System.getenv(envName);
-        // Absolute, because the tools are run from a temporary folder, not from here.
-        Path path = Paths.get(value != null ? value : defaultPath).toAbsolutePath().normalize();
-        Path exe = Paths.get(path + ".exe");                // on Windows, programs are called name.exe
-        // On Windows name.exe wins even if a file called just "name" exists: that one is
-        // usually a Linux or macOS build that came with the repo.
-        if (isWindows() && Files.isRegularFile(exe)) return exe;
-        if (!Files.isRegularFile(path) && Files.isRegularFile(exe)) return exe;
-        return path;
+	    String value = System.getenv(envName);
+
+	    Path path = Paths.get(value != null ? value : defaultPath)
+		    .toAbsolutePath()
+		    .normalize();
+
+	    if (isWindows()) {
+		    Path exe = Paths.get(path.toString() + ".exe");
+
+		    if (Files.isRegularFile(exe))
+			    return exe;
+	    }
+
+	    return path;
     }
 
     /*
@@ -324,14 +329,34 @@ public class Bridge {
      * came with the repo is left alone. Uses gcc, or whatever the CC setting names.
      */
     static void buildTools() throws InterruptedException {
-        String compiler = System.getenv("CC") != null ? System.getenv("CC") : "gcc";
-        String ending = isWindows() ? ".exe" : "";
-        System.out.println("Building the C programs with " + compiler + " ...");
-        boolean haveCompiler = compile(compiler, "src", "assemblr" + ending, "-Wall", "-Wextra", "-O2");
-        if (haveCompiler) compile(compiler, "emu", "emulator" + ending, "-Wall");
-        System.out.println();
-    }
+	    String compiler = System.getenv("CC");
 
+	    if (compiler == null)
+		    compiler = "gcc";
+
+	    String assemblerOutput = isWindows() ? "assemblr.exe" : "assemblr";
+	    String emulatorOutput  = isWindows() ? "emulator.exe" : "./emu/emu";
+
+	    System.out.println("Building the C programs with " + compiler + " ...");
+
+	    boolean haveCompiler = compile(
+			    compiler,
+			    "src",
+			    assemblerOutput,
+			    "-Wall", "-Wextra", "-O2"
+			    );
+
+	    if (haveCompiler) {
+		    compile(
+				    compiler,
+				    "emu",
+				    emulatorOutput,
+				    "-Wall"
+			   );
+	    }
+
+	    System.out.println();
+    }
     /* Compiles one program. Returns false only if the compiler itself could not be run. */
     static boolean compile(String compiler, String folder, String output, String... flags) throws InterruptedException {
         Path here = Paths.get("").toAbsolutePath();

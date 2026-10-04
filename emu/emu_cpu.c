@@ -8,6 +8,9 @@ extern uint8_t memory[MEM_SIZE];
 uint32_t r[NUM_REGS] = {0};   // r[1] to r[16]; r[0] is unused
 struct CurrentJSONInstruction CurrentJSONInstruction= {0};
 int pc = 0;
+
+uint32_t pipeline[5];
+
 //rd1
 
 static void print_registers(void) {
@@ -300,7 +303,6 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput) {
 		}
 		resetCurrentJSONInstruction(cycle);
 
-		//fprintf("{\ncycle_number : %d,\nprogram_counter : %d,\ninstruction_information : {\ninstruction : \"%s\", operands : [\"%s\",\"%s\",\"%s\"],\nopcode : \"%s\"\n},\n\"register_states\": [%d, %d, %d],\n\"memory_diff\" : []", steps, pc, );
 		const uint8_t *p = &program[pc * 4];
 
 		uint32_t instruction =
@@ -315,21 +317,6 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput) {
 			CurrentJSONInstruction.registerStates[i] = r[i];
 		}
 
-
-		//json output
-//		{
-//			"cycle_number": 42,
-//			"program_counter": 2097152,
-//			"instruction_information": {
-//				"instruction": "add",
-//				"operands" : [r1, r2, r3],
-//				"opcode": "00000000001100010000000010110011"
-//			},
-//			"register_states": [0,10,20,30],
-//			"memory_locations_diffed": []
-//			"memory_values_diffed" : []
-//			"memory_old_value" : []
-//		}
 		writeJSONFile(jsonOutput);
 
 		if (result == -1) return 1;               /* error: stop safely */
