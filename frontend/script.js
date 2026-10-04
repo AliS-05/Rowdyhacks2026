@@ -24,15 +24,15 @@
       { op: 7, rd: 1, rs1: 2, imm: 4, asm: "sw r1, 4(r2)" },
       { op: 6, rd: 3, rs1: 2, imm: 4, asm: "lw r3, 4(r2)" },
     ] },
-    { id: "ldb",   asm: "ldb r4, 0(r2)",    what: "Load one byte (stored first)", init: { 1: 65, 2: 16 }, program: [
-      { op: 4, rd: 1, rs1: 2, imm: 0, asm: "stb r1, 0(r2)" },
-      { op: 3, rd: 4, rs1: 2, imm: 0, asm: "ldb r4, 0(r2)" },
+    { id: "lb",   asm: "lb r4, 0(r2)",    what: "Load one byte (stored first)", init: { 1: 65, 2: 16 }, program: [
+      { op: 4, rd: 1, rs1: 2, imm: 0, asm: "sb r1, 0(r2)" },
+      { op: 3, rd: 4, rs1: 2, imm: 0, asm: "lb r4, 0(r2)" },
     ] },
-    { id: "stb",   asm: "stb r1, -2(r2)",   what: "Store one byte, then load it", init: { 1: 511, 2: 34 }, program: [
-      { op: 4, rd: 1, rs1: 2, imm: -2, asm: "stb r1, -2(r2)" },
-      { op: 3, rd: 3, rs1: 2, imm: -2, asm: "ldb r3, -2(r2)" },
+    { id: "sb",   asm: "sb r1, -2(r2)",   what: "Store one byte, then load it", init: { 1: 511, 2: 34 }, program: [
+      { op: 4, rd: 1, rs1: 2, imm: -2, asm: "sb r1, -2(r2)" },
+      { op: 3, rd: 3, rs1: 2, imm: -2, asm: "lb r3, -2(r2)" },
     ] },
-    { id: "stop",  asm: "stop",             what: "Halt the program", op: 255, rd: 0, rs1: 0, init: {} },
+    { id: "Halt",  asm: "Halt",             what: "Halt the program", op: 255, rd: 0, rs1: 0, init: {} },
     { id: "prog", asm: "addi, add, sub", what: "Three instructions in a row", init: {}, program: [
       { rd: 1, rs1: 1, imm: 5, asm: "addi r1, r1, 5" },
       { op: 1, rd: 2, rs1: 1, rs2: 1, asm: "add r2, r1, r1" },
@@ -48,8 +48,8 @@
   const ISA = [
     [1, "add", "rd", "rs1", "rs2", "r[rd] = r[rs1] + r[rs2]"],
     [2, "sub", "rd", "rs1", "rs2", "r[rd] = r[rs1] - r[rs2]"],
-    [3, "ldb", "rd", "offset(base)", "—", "r[rd] = 1 byte at r[base] + offset"],
-    [4, "stb", "rs", "offset(base)", "—", "1 byte at r[base] + offset = r[rs]"],
+    [3, "lb", "rd", "offset(base)", "—", "r[rd] = 1 byte at r[base] + offset"],
+    [4, "sb", "rs", "offset(base)", "—", "1 byte at r[base] + offset = r[rs]"],
     [5, "addi", "rd", "rs1", "number", "r[rd] = r[rs1] + number"],
     [6, "lw", "rd", "offset(base)", "—", "r[rd] = 4 bytes at r[base] + offset"],
     [7, "sw", "rs", "offset(base)", "—", "4 bytes at r[base] + offset = r[rs]"],
@@ -58,15 +58,15 @@
   ];
   const STAGES = ["Fetch", "Decode", "Read", "Execute", "Memory", "Write back", "Next PC"];
   const MEM_BYTES = 256;
-  const NAMES = { 1: "add", 2: "sub", 3: "ldb", 4: "stb", 5: "addi", 6: "lw", 7: "sw", 255: "stop" };
-  const ANIMATED = ["add", "sub", "ldb", "stb", "addi", "lw", "sw", "Halt"];
+  const NAMES = { 1: "add", 2: "sub", 3: "lb", 4: "sb", 5: "addi", 6: "lw", 7: "sw", 255: "Halt" };
+  const ANIMATED = ["add", "sub", "lb", "sb", "addi", "lw", "sw", "Halt"];
   const isLoad = (op) => op === 3 || op === 6;
   const isStore = (op) => op === 4 || op === 7;
   const memSize = (op) => (op === 6 || op === 7 ? 4 : 1);
   const MAX_INSTR = 8;
 
   // ---------- parser plug-in (BEGIN) ----------
-  const OPS = { add: 1, sub: 2, ldb: 3, lb: 3, lbu: 3, stb: 4, sb: 4, addi: 5, lw: 6, sw: 7, stop: 255, halt: 255 };
+  const OPS = { add: 1, sub: 2, lb: 3, lb: 3, lbu: 3, sb: 4, sb: 4, addi: 5, lw: 6, sw: 7, stop: 255, halt: 255 };
   function normalizeIns(x, i) {
     const where = `Instruction ${i + 1}`;
     let op = typeof x.op === "string" ? OPS[x.op.toLowerCase()]
