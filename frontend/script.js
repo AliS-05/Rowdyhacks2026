@@ -48,8 +48,8 @@
   const ISA = [
     [1, "add", "rd", "rs1", "rs2", "r[rd] = r[rs1] + r[rs2]"],
     [2, "sub", "rd", "rs1", "rs2", "r[rd] = r[rs1] - r[rs2]"],
-    [3, "ldb", "rd", "base", "offset", "r[rd] = 1 byte at r[base] + offset"],
-    [4, "stb", "rs", "base", "offset", "1 byte at r[base] + offset = r[rs]"],
+    [3, "ldb", "rd", "offset(base)", "—", "r[rd] = 1 byte at r[base] + offset"],
+    [4, "stb", "rs", "offset(base)", "—", "1 byte at r[base] + offset = r[rs]"],
     [5, "addi", "rd", "rs1", "number", "r[rd] = r[rs1] + number"],
     [6, "lw", "rd", "offset(base)", "—", "r[rd] = 4 bytes at r[base] + offset"],
     [7, "sw", "rs", "offset(base)", "—", "4 bytes at r[base] + offset = r[rs]"],
