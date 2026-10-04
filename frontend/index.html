@@ -174,7 +174,7 @@ footer { font-size: 12.5px; color: var(--muted); }
   <section class="try" aria-label="Your own instruction">
     <div class="label">Or type your own</div>
     <div class="fields">
-      <label for="inAsm">Instruction (add, sub, addi or stop)
+      <textarea id="ism" rows="5" spellcheck = "false">addi r1,r1, 5</textarea>
         <input id="inAsm" type="text" value="add r3, r1, r2" spellcheck="false" autocomplete="off">
       </label>
       <label for="inRegs">Starting registers (the rest are 0)
