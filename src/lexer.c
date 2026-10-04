@@ -57,7 +57,14 @@ Token nextToken() {
 			curPos++;
 			tok.type = COLON;
 		        return tok;
-
+		case '(':
+			curPos++;
+			tok.type = OPEN;
+			return tok;
+		case ')':
+			curPos++;
+			tok.type = CLOSE;
+			return tok;
 		case '[': // dereferencing not supported even though i check for it
 			curPos++;
 			tok.type = LBRACKET;
@@ -127,6 +134,9 @@ Token nextToken() {
 		tok.intValue = value;
 		return tok;
 	}
+
+	
+
 	tok.type = INVALID;
 	curPos++;
 	return tok;

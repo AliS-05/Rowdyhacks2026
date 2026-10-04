@@ -186,10 +186,16 @@ void printInstruction(Instruction* i){
 	printf(mnemonicTypeToStr(i->mnemonic));
 	printf(" }\n");
 	if(i->operandCount >= 1){
-		if(i->operand1.type == NUMBER){
+		if(i->operand1.type == EXPRESSION){
+			printf(" Operand 1 { ");
+			printf("%s", ntos(i->operand1.offset, buf, 10));
+			printf("(%s)}\n", i->operand1.strValue);
+
+		}
+		else if(i->operand1.type == NUMBER){
 			printf(" Operand 1 { ");
 			printf("%s", ntos(i->operand1.intValue, buf, 10));
-			printf(buf);
+			//printf(buf);
 			printf(" }\n");
 		} else{
 			printf(" Operand 1 { ");
@@ -199,7 +205,13 @@ void printInstruction(Instruction* i){
 	}
 
 	if(i->operandCount >= 2){
-		if(i->operand2.type == NUMBER){
+		if(i->operand2.type == EXPRESSION){
+			printf(" Operand 2 { ");
+			printf("%s", ntos(i->operand2.offset, buf, 10));
+			printf("(%s)}\n", i->operand2.strValue);
+
+		}
+		else if(i->operand2.type == NUMBER){
 			printf(" Operand 2 { ");
 			printf("%s", ntos(i->operand2.intValue, buf, 10));
 			
@@ -211,7 +223,13 @@ void printInstruction(Instruction* i){
 		}
 	}
 	if(i->operandCount >= 3){
-		if(i->operand3.type == NUMBER){
+		if(i->operand3.type == EXPRESSION){
+			printf(" Operand 3 { ");
+			printf("%s", ntos(i->operand3.offset, buf, 10));
+			printf("(%s)}\n", i->operand3.strValue);
+
+		}
+		else if(i->operand3.type == NUMBER){
 			printf(" Operand 3 { ");
 			printf("%s", ntos(i->operand3.intValue, buf, 10));
 			
@@ -271,9 +289,25 @@ Operand parseOperand(TokVector* vec, int* pos){
 		op.type = MEMORY; // dont want it to stay LBRACKET
 		op.strValue = vec->data[*pos].strValue; //copying register value
 		(*pos)++; //done with register now sitting at ] which gets skipped below
-	}
+	} 
 	else if(t.type == NUMBER){
-		op.intValue = t.intValue;
+		//LW r1, 16(r2) -> ID REG COMMA 
+		//index, ie 16(R4)
+		if (peek(vec->data, *pos).type == OPEN) {
+			printf("OFFSET DETECTED\n");
+			int offset = t.intValue;
+			(*pos)++;
+			(*pos)++;
+			op.type = EXPRESSION;
+			op.strValue = vec->data[*pos].strValue;
+			op.offset = offset;
+			(*pos)++;
+			printf("OFFSET PARSED\n");
+
+		}
+		else{
+			op.intValue = t.intValue;
+		}
 	} else{
 		op.strValue = t.strValue;
 	}

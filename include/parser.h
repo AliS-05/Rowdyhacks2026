@@ -34,7 +34,10 @@ typedef struct {
 		int intValue; // immediate value / memory address
 	};
 	int line;
+	int offset;
 } Operand;
+
+
 
 typedef struct Instruction {
 	MnemonicType mnemonic; // mov jmp org lidt lgdt etc

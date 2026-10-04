@@ -6,6 +6,9 @@ typedef enum {
 	NEWLINE,
 	IDENTIFIER,
 	REGISTER,
+
+	EXPRESSION,
+
 	NUMBER,
 	COMMA,
 	PLUS,
@@ -13,6 +16,8 @@ typedef enum {
 	STAR,
 	DIV,
 	COLON,
+	OPEN, // (
+	CLOSE, // )
 	LBRACKET, // [
 	RBRACKET, // ]
 	MEMORY,
