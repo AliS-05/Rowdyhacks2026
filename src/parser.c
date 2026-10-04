@@ -294,7 +294,6 @@ Operand parseOperand(TokVector* vec, int* pos){
 		//LW r1, 16(r2) -> ID REG COMMA 
 		//index, ie 16(R4)
 		if (peek(vec->data, *pos).type == OPEN) {
-			printf("OFFSET DETECTED\n");
 			int offset = t.intValue;
 			(*pos)++;
 			(*pos)++;
@@ -302,7 +301,6 @@ Operand parseOperand(TokVector* vec, int* pos){
 			op.strValue = vec->data[*pos].strValue;
 			op.offset = offset;
 			(*pos)++;
-			printf("OFFSET PARSED\n");
 
 		}
 		else{
