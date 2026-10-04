@@ -3,7 +3,7 @@
 ## Usage
 
 - Linux : './run.sh' starts the docker image -> localhost:8080
-- Mac :
+- Mac  './run.command'
 - Windows :
 
 <img width="1428" height="730" alt="image" src="https://github.com/user-attachments/assets/ec3cdc72-babc-4f9b-ae72-b3bb2fdb7756" />
