@@ -429,13 +429,98 @@ public class Bridge {
 
             // Do the work. Assembly errors are a normal outcome, so they still get status 200;
             // the front end looks at "ok" and "stage" to see what happened.
-            send(exchange, 200, runPipeline((String) source, registersText));
+            Map<String, Object> reply = runPipeline((String) source, registersText);
+            logRun((String) source, reply);
+            send(exchange, 200, reply);
 
         } catch (Exception e) {                             // anything unexpected: report it, don't crash
             send(exchange, 500, failure("bridge", e.toString()));
         } finally {
             exchange.close();
         }
+    }
+
+    /*
+     * Writes what happened in one run to the terminal, in full. The page only has room
+     * for a sentence; this is where to look (and what to copy) when something fails.
+     */
+    static synchronized void logRun(String source, Map<String, Object> reply) {
+        StringBuilder log = new StringBuilder();
+        log.append("\n==================== a program was sent from the page ====================\n");
+        log.append("program:\n").append(indent(source));
+        Object asm = reply.get("assembler"), emu = reply.get("emulator");
+        if (asm instanceof Map) {
+            Map<?, ?> a = (Map<?, ?>) asm;
+            log.append("ASSEMBLER  exit code ").append(a.get("exit_code")).append("\n");
+            if (a.get("output_from") != null) {
+                log.append("  its output, handed to the emulator: ").append(a.get("output_from"))
+                   .append(", ").append(a.get("output_bytes")).append(" bytes\n");
+                log.append("  that output starts with:\n").append(indent(String.valueOf(a.get("output_preview"))));
+            }
+            logPrinted(log, "  it printed:", a.get("stdout"), a.get("stderr"));
+        }
+        if (emu instanceof Map) {
+            Map<?, ?> e = (Map<?, ?>) emu;
+            log.append("EMULATOR  exit code ").append(e.get("exit_code")).append("\n");
+            logPrinted(log, "  it printed:", e.get("raw"), e.get("stderr"));
+            int values = (e.get("cycles") instanceof List) ? ((List<?>) e.get("cycles")).size() : 0;
+            boolean fromFile = String.valueOf(e.get("json_from")).startsWith("file");
+            if (!fromFile && !Boolean.TRUE.equals(e.get("is_json"))) {
+                log.append("  its JSON: none (it wrote no ").append(emuJsonName).append(", and what it printed is not JSON)\n");
+            } else {
+                log.append("  its JSON (").append(e.get("json_from")).append("): ");
+                log.append(Boolean.TRUE.equals(e.get("is_json")) ? values + " value(s) read" : "NOT VALID, " + e.get("json_error"));
+                log.append("\n");
+            }
+            if (e.get("json_text") != null) log.append(indent(String.valueOf(e.get("json_text"))));
+            if (values > 0) {
+                String first = Json.write(((List<?>) e.get("cycles")).get(0));
+                log.append("  the first value in it:\n").append(indent(first.length() > 700 ? first.substring(0, 700) + " ..." : first));
+            }
+            if (e.get("note") != null) log.append("  note: ").append(e.get("note")).append("\n");
+        }
+        if (Boolean.TRUE.equals(reply.get("ok"))) {
+            int count = (reply.get("instructions") instanceof List) ? ((List<?>) reply.get("instructions")).size() : 0;
+            log.append("RESULT  ok, ").append(count).append(" instruction(s) sent to the page, taken from ")
+               .append(reply.get("instructions_from")).append("\n");
+            for (Object one : (List<?>) reply.get("instructions")) {
+                if (one instanceof Map) log.append("    ").append(((Map<?, ?>) one).get("asm")).append("\n");
+            }
+        } else {
+            log.append("RESULT  STOPPED at the ").append(reply.get("stage")).append(" stage: ")
+               .append(reply.get("error")).append("\n");
+        }
+        log.append("===========================================================================");
+        System.out.println(log);
+    }
+
+    static void logPrinted(StringBuilder log, String title, Object first, Object second) {
+        String text = ((first instanceof String ? (String) first : "") + (second instanceof String ? (String) second : "")).trim();
+        log.append(title).append(text.isEmpty() ? " (nothing)\n" : "\n" + indent(text));
+    }
+
+    /* Each line of the text moved four spaces in, and the whole kept to a readable length. */
+    static String indent(String text) {
+        if (text.length() > 3000) text = text.substring(0, 3000) + "\n... (cut here; there was more)";
+        StringBuilder out = new StringBuilder();
+        for (String line : text.split("\\r?\\n", -1)) out.append("    ").append(line).append("\n");
+        return out.toString();
+    }
+
+    /*
+     * The start of a file in a form a person can read: as text if it is text,
+     * otherwise as the numbers of its bytes (two hex digits each).
+     */
+    static String preview(byte[] start) {
+        int odd = 0;
+        for (byte b : start) {
+            if ((b < 0x20 && b != '\n' && b != '\r' && b != '\t') || b == 0x7F) odd++;
+        }
+        if (start.length > 0 && odd == 0) return "(text) " + new String(start, StandardCharsets.UTF_8);
+        StringBuilder hex = new StringBuilder("(bytes, in hex) ");
+        for (int k = 0; k < Math.min(start.length, 48); k++) hex.append(String.format("%02x ", start[k] & 0xFF));
+        if (start.length > 48) hex.append("...");
+        return hex.toString().trim();
     }
 
     /* Sends a JSON reply. */
@@ -586,11 +671,18 @@ public class Bridge {
             "  function explain(reply) {",
             "    var error = reply.error || 'no reason given';",
             "    if (reply.stage === 'request') return error;         // a problem with what was typed",
-            "    var text = 'Stopped at the ' + (reply.stage || 'bridge') + ' stage: ' + error + '.';",
+            "    var stage = reply.stage || 'bridge';",
+            "    var text = 'Stopped at the ' + stage + ' stage: ' + error + '.';",
             "    var asm = reply.assembler || {}, emu = reply.emulator || {};",
-            "    var said = [asm.stdout, asm.stderr, emu.raw, emu.stderr].filter(Boolean).join(' ').trim();",
-            "    if (said) text += ' It printed: ' + said.slice(0, 300);",
-            "    return text;",
+            "    // what the program that failed printed; error messages are at the end, so keep the end",
+            "    var said = (stage === 'emulator' ? [emu.raw, emu.stderr] : [asm.stdout, asm.stderr]);",
+            "    said = said.filter(Boolean).join(' ').trim();",
+            "    if (said.length > 400) said = '... ' + said.slice(-400);",
+            "    text += said ? ' The ' + stage + ' printed: ' + said : ' The ' + stage + ' printed nothing.';",
+            "    if (stage === 'emulator' && asm.output_from) {",
+            "      text += ' (It was given the assembler output: ' + asm.output_from + ', ' + asm.output_bytes + ' bytes.)';",
+            "    }",
+            "    return text + ' The full details are in the terminal window where the bridge is running.';",
             "  }",
             "})();",
             "");
@@ -697,6 +789,7 @@ public class Bridge {
                 return reply;
             }
             asmInfo.put("output_bytes", Files.size(machineCode));
+            asmInfo.put("output_preview", preview(readStart(machineCode, 600)));
 
             /*    If the assembler printed JSON, or the file it wrote is JSON (a listing of the
              *    program, say), the front end gets it ready-parsed as "json" in the reply. */
@@ -759,24 +852,41 @@ public class Bridge {
             if (emu.timedOut)      { reply.put("error", "emulator took too long and was stopped (infinite loop?)"); return reply; }
             if (emu.truncated)     { reply.put("error", "emulator printed too much output and was stopped"); return reply; }
             if (fileTooBig)        { reply.put("error", "the emulator's " + emuJsonName + " is too big (over " + MAX_OUTPUT / (1024 * 1024) + " MB)"); return reply; }
-            if (emu.exitCode != 0) { reply.put("error", "emulator failed with exit code " + emu.exitCode); return reply; }
+            // The emulator reports "pc=2 is outside the program (0..1)" and exit code 1 when a program
+            // simply runs past its last instruction (it has no halt). That is a normal finish here.
+            boolean ranToTheEnd = emu.exitCode != 0 && ranPastLastInstruction(printed + text(emu.stderr));
+            if (ranToTheEnd) emuInfo.put("note", "the emulator ran every instruction, then stopped because the program has no halt");
+            if (emu.exitCode != 0 && !ranToTheEnd) {
+                reply.put("error", "emulator failed with exit code " + emu.exitCode);
+                return reply;
+            }
             if (fromFile && jsonError != null) {
                 reply.put("error", "the emulator's " + emuJsonName + " is not valid JSON: " + jsonError);
                 return reply;
             }
 
-            /* 6. Turn the CPU's JSON into what the page's board understands.
-             *    The CPU writes  {"program": {"instructions": [ {...}, {...} ]}} ; the page wants
-             *    a list called "instructions" whose items have op, rd, rs1, rs2, imm and asm. */
-            List<?> cpuInstructions = findInstructions(cycles);
-            if (cpuInstructions == null) {
-                reply.put("error", "the CPU's JSON has no list of instructions"
-                        + " (expected {\"program\": {\"instructions\": [...]}})");
-                return reply;
-            }
+            /* 6. Build the list of instructions the page's board understands
+             *    (items with op, rd, rs1, rs2, imm and asm).
+             *    If the CPU's JSON lists the program, as {"program": {"instructions": [...]}}, that
+             *    list is used. Otherwise the CPU's JSON is one entry per step it ran, which is a
+             *    record of the run and not a list of the program, so the program is read from the
+             *    machine code the assembler produced (RISC-V, 4 bytes per instruction). */
             List<Object> instructions = new ArrayList<>();
-            for (Object one : cpuInstructions) {
-                if (one instanceof Map) instructions.add(toPageInstruction((Map<?, ?>) one));
+            List<?> cpuInstructions = findInstructions(cycles);
+            if (cpuInstructions != null) {
+                for (Object one : cpuInstructions) {
+                    if (one instanceof Map) instructions.add(toPageInstruction((Map<?, ?>) one));
+                }
+                reply.put("instructions_from", "the CPU's JSON");
+            } else {
+                byte[] code = readStart(machineCode, MAX_OUTPUT);
+                if (code.length == 0 || code.length % 4 != 0) {
+                    reply.put("error", "the CPU's JSON has no list of instructions, and the assembler's output ("
+                            + code.length + " bytes) is not a whole number of 4-byte instructions");
+                    return reply;
+                }
+                instructions.addAll(decodeRiscv(code));
+                reply.put("instructions_from", "the assembler's machine code, read as RISC-V");
             }
             reply.put("instructions", instructions);
             reply.put("init", init);
@@ -868,6 +978,77 @@ public class Bridge {
         boolean bareList = !values.isEmpty() && values.get(0) instanceof Map
                 && ((Map<?, ?>) values.get(0)).containsKey("assembly");
         return bareList ? values : null;
+    }
+
+    /* True if the emulator's output says the pc went exactly one past the last instruction. */
+    static boolean ranPastLastInstruction(String output) {
+        Matcher m = Pattern.compile("pc=(\\d{1,9}) is outside the program \\(0\\.\\.(\\d{1,9})\\)").matcher(output);
+        return m.find() && Long.parseLong(m.group(1)) == Long.parseLong(m.group(2)) + 1;
+    }
+
+    /*
+     * Reads RISC-V machine code: every instruction is 4 bytes, lowest byte first, and its
+     * bits are laid out like this (for the two kinds the page can animate):
+     *
+     *   add/sub rd, rs1, rs2     funct7 | rs2 | rs1 | funct3 | rd | opcode 0110011
+     *   addi    rd, rs1, number  number (12 bits)| rs1 | funct3 | rd | opcode 0010011
+     *
+     * Other instructions are named but not taken apart; the page says it cannot animate them.
+     */
+    static List<Object> decodeRiscv(byte[] code) {
+        List<Object> list = new ArrayList<>();
+        for (int at = 0; at + 4 <= code.length; at += 4) {
+            long word = (code[at] & 0xFFL) | (code[at + 1] & 0xFFL) << 8
+                      | (code[at + 2] & 0xFFL) << 16 | (code[at + 3] & 0xFFL) << 24;
+            int opcode = (int) (word & 0x7F);
+            int rd     = (int) (word >> 7 & 0x1F);
+            int funct3 = (int) (word >> 12 & 0x7);
+            int rs1    = (int) (word >> 15 & 0x1F);
+            int rs2    = (int) (word >> 20 & 0x1F);
+            int funct7 = (int) (word >> 25 & 0x7F);
+            int number = (int) (word >> 20 & 0xFFF);
+            if (number >= 0x800) number -= 0x1000;          // 12 bits, signed: 0xFFF means -1
+
+            Map<String, Object> page = new LinkedHashMap<>();
+            String name = riscvName(opcode, funct3, funct7, number);
+            page.put("op", name);
+            if (opcode == 0x33) {                           // register with register: add, sub, ...
+                page.put("rd", rd); page.put("rs1", rs1); page.put("rs2", rs2);
+                page.put("asm", name + " r" + rd + ", r" + rs1 + ", r" + rs2);
+            } else if (opcode == 0x13) {                    // register with number: addi, ...
+                page.put("rd", rd); page.put("rs1", rs1); page.put("imm", number);
+                page.put("asm", name + " r" + rd + ", r" + rs1 + ", " + number);
+            } else {
+                page.put("asm", name);
+            }
+            page.put("address", at / 4);
+            page.put("machineCode", String.format("0x%08x", word));
+            list.add(page);
+        }
+        return list;
+    }
+
+    static String riscvName(int opcode, int funct3, int funct7, int number) {
+        switch (opcode) {
+            case 0x33:
+                if (funct7 == 0x00) return new String[] {"add", "sll", "slt", "sltu", "xor", "srl", "or", "and"}[funct3];
+                if (funct7 == 0x20 && funct3 == 0) return "sub";
+                if (funct7 == 0x20 && funct3 == 5) return "sra";
+                if (funct7 == 0x01) return new String[] {"mul", "mulh", "mulhsu", "mulhu", "div", "divu", "rem", "remu"}[funct3];
+                return "unknown";
+            case 0x13:
+                if (funct3 == 5) return funct7 == 0x20 ? "srai" : "srli";
+                return new String[] {"addi", "slli", "slti", "sltiu", "xori", "", "ori", "andi"}[funct3];
+            case 0x03: return new String[] {"lb", "lh", "lw", "unknown", "lbu", "lhu", "unknown", "unknown"}[funct3];
+            case 0x23: return new String[] {"sb", "sh", "sw", "unknown", "unknown", "unknown", "unknown", "unknown"}[funct3];
+            case 0x63: return new String[] {"beq", "bne", "unknown", "unknown", "blt", "bge", "bltu", "bgeu"}[funct3];
+            case 0x6F: return "jal";
+            case 0x67: return "jalr";
+            case 0x37: return "lui";
+            case 0x17: return "auipc";
+            case 0x73: return number == 0 ? "ecall" : number == 1 ? "ebreak" : "unknown";
+            default:   return "unknown";
+        }
     }
 
     /*
