@@ -44,6 +44,10 @@ int getRegisterCode(const char* reg) {
 	if(!strcmp(reg, "r10")) return 10;
 	if(!strcmp(reg, "r11")) return 11;
 	if(!strcmp(reg, "r12")) return 12;
+	if(!strcmp(reg, "r13")) return 13;
+	if(!strcmp(reg, "r14")) return 14;
+	if(!strcmp(reg, "r15")) return 15;
+	if(!strcmp(reg, "r16")) return 16;
 
 	printf("Unknown register: %s\n", reg);
 	return -1;
