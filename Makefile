@@ -2,19 +2,14 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude -O2
 
 SRC = $(wildcard src/*.c)
-OBJ = $(SRC:.c=.o)
-
 TARGET = assemblr
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) -o $@ $(OBJ)
-
-src/%.o: src/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
 
 clean:
-	rm -f src/*.o $(TARGET)
+	rm -f $(TARGET)
 
 .PHONY: all clean
