@@ -422,5 +422,4 @@ void parseTokenArray(Token* tokenArray, InstructionVector* instVec){
 	while(tokenArray[index].type != TOK_EOF){
 		parseLine(tokenArray, &index, instVec);	
 	}
-
 }

@@ -64,51 +64,61 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		case INST_LW:{
 		    int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2 = getRegisterCode(inst->operand2.strValue);
+		      	int register1 = getRegisterCode(inst->operand1.strValue);
+			int register2;
+			uint32_t funct7 = 0b0000000;
+			if(inst->operand2.type == EXPRESSION){
+				register2 = getRegisterCode(inst->operand2.strValue);
+				funct7 = inst->operand2.offset;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+
 			//int operand3 = inst->operand3.intValue;
+			int rd = getRegisterCode(inst->operand1.strValue);
+			int rs1 = getRegisterCode(inst->operand2.strValue);
+			int immediate = inst->operand2.offset;
 
 			uint32_t instruction = 0;
-			uint32_t opcode = 0b000011;
 
-			instruction |= opcode;
-			uint32_t funct3 = 0b000;
-			instruction |= (funct3 << 12);
-
-			instruction |= (register1 << 15);
-			instruction |= (register2 << 20);
-
-			uint32_t funct7 = 0b0000000;
-			instruction |= (funct7 << 25);
+			instruction |= 0x03;
+			instruction |= rd << 7;
+			instruction |= 0b010 << 12;
+			instruction |= rs1 << 15;
+			instruction |= (immediate & 0xFFF) << 20;
 
 			ByteVectorWrite32(byteVector, instruction);
 			break;
+
 	      	}
 		case INST_SW: {
 			int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
+			int register2;
+			uint32_t funct7 = 0b0000000;
+			if(inst->operand2.type == EXPRESSION){
+				register2 = getRegisterCode(inst->operand2.strValue);
+				funct7 = inst->operand2.offset;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
 			//int operand3 = inst->operand3.intValue;
 			
-			int immediate = 0;
+			int rs2 = getRegisterCode(inst->operand1.strValue);
+			int rs1 = getRegisterCode(inst->operand2.strValue);
+			int immediate = inst->operand2.offset;
 
 			uint32_t instruction = 0;
-			uint32_t opcode = 0b0100011;
 
-			instruction |= opcode;
-
-			uint32_t funct3 = 0b010;
-			instruction |= (funct3 << 12);
-
-			instruction |= (register1 << 15); // rs1
-			instruction |= (register2 << 20); // rs2
-
-			// imm[4:0] -> bits 11:7
-			instruction |= ((immediate & 0x1F) << 7);
-
-			// imm[11:5] -> bits 31:25
-			instruction |= (((immediate >> 5) & 0x7F) << 25);
+			instruction |= 0x23;
+			instruction |= (immediate & 0x1F) << 7;
+			instruction |= 0b010 << 12;
+			instruction |= rs1 << 15;
+			instruction |= rs2 << 20;
+			instruction |= ((immediate >> 5) & 0x7F) << 25;
 
 			ByteVectorWrite32(byteVector, instruction);
 			break;
-	       }
+		}
 		case INST_ADDI: {
 			int register1, register2, immediate;
 			if(inst->operand1.type == NUMBER){
@@ -307,7 +317,6 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		}
 	}
 }
-
 
 //loop through instruction vector, translate instruction based on mnemonic register / immediate etc, look up labels in symbolTable,  emit code byte, 
 void startCodeGen(InstructionVector* instVec, SymbolTable* table, ByteVector* byteVector){
