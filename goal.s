@@ -1,4 +1,4 @@
-lw r1, r2
-sw r2, r1
-add r1, r2, 5
+add r1, 2, r3
+addi 1, r2, r1
+bne 8, r1, r2
 ret

@@ -72,4 +72,3 @@ void assemble_buffer(char* buffer){
 	fclose(file);
 
 	printf("Finished writing to output file. Enjoy!\n");}
-

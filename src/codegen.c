@@ -110,9 +110,22 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			break;
 	       }
 		case INST_ADDI: {
-			int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
-			int immediate = inst->operand3.intValue;
+			int register1, register2, immediate;
+			if(inst->operand1.type == NUMBER){
+				register1 = inst->operand1.intValue;
+			}else{
+				register1 = getRegisterCode(inst->operand1.strValue);
+			}
+			if(inst->operand2.type == NUMBER){
+				register2 = inst->operand2.intValue;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+			if(inst->operand3.type == NUMBER){
+				immediate = inst->operand3.intValue;
+			}else{
+				immediate = getRegisterCode(inst->operand3.strValue);
+			}
 
 			uint32_t instruction = 0;
 			uint32_t opcode = 0b0010011;
@@ -126,9 +139,23 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		}
 
 		case INST_BNE: {
-			int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
-			int immediate = inst->operand3.intValue;
+			int register1, register2, immediate;
+			if(inst->operand1.type == NUMBER){
+			register1 = inst->operand1.intValue;
+			}else{
+			register1 = getRegisterCode(inst->operand1.strValue);
+			}
+
+			if(inst->operand2.type == NUMBER){
+			register2 = inst->operand2.intValue;
+			}else{
+			register2 = getRegisterCode(inst->operand2.strValue);
+			}
+			if(inst->operand3.type == NUMBER){
+			immediate = inst->operand3.intValue;
+			}else{
+			immediate = getRegisterCode(inst->operand3.strValue);
+			}
 
 			uint32_t instruction = 0;
 			uint32_t opcode = 0b1100011;
@@ -137,14 +164,15 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			instruction |= 0b001 << 12;
 			instruction |= register1 << 15;
 			instruction |= register2 << 20;
-			
 			instruction |= ((immediate >> 12) & 0x1) << 31;
 			instruction |= ((immediate >> 5) & 0x3F) << 25;
 			instruction |= ((immediate >> 1) & 0xF) << 8;
 			instruction |= ((immediate >> 11) & 0x1) << 7;
 			ByteVectorWrite32(byteVector, instruction);
 			break;
-		}	
+			}
+
+
 		case INST_MOV: {
 			//encodeMove(inst, byteVector);
 			break;
@@ -165,10 +193,23 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 		}
 
 		case INST_ADD: {
-			int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
-			int register3 = inst->operand3.intValue;
-
+			int register1, register2, register3;
+			if(inst->operand1.type == NUMBER){
+				register1 = inst->operand1.intValue;
+			}else{
+				register1 = getRegisterCode(inst->operand1.strValue);
+			}
+			if(inst->operand2.type == NUMBER){
+				register2 = inst->operand2.intValue;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+			if(inst->operand3.type == NUMBER){
+				register3 = inst->operand3.intValue;
+			}else{
+				register3 = getRegisterCode(inst->operand3.strValue);
+			}
+			
 			uint32_t instruction = 0;
 
 			uint32_t opcode = 0b0110011;
@@ -182,13 +223,28 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			instruction |= (0b0000000 << 25);
 
 			ByteVectorWrite32(byteVector, instruction);
+			
 			break;
-		}
-		
+	}
 		case INST_SUB:{
-			int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
-			int register3 = getRegisterCode(inst->operand3.strValue);
+			
+			int register1, register2, register3;
+
+			if(inst->operand1.type == NUMBER){
+				register1 = inst->operand1.intValue;
+			}else{
+				register1 = getRegisterCode(inst->operand1.strValue);
+			}
+			if(inst->operand2.type == NUMBER){
+				register2 = inst->operand2.intValue;
+			}else{
+				register2 = getRegisterCode(inst->operand2.strValue);
+			}
+			if(inst->operand3.type == NUMBER){
+				register3 = inst->operand3.intValue;
+			}else{
+				register3 = getRegisterCode(inst->operand3.strValue);
+			}
 
 			uint32_t instruction = 0;
 			uint32_t opcode = 0b0110011;
