@@ -37,88 +37,6 @@
   const STAGES = ["Fetch", "Decode", "Read", "Execute", "Write back", "Next PC"];
   const MAX_INSTR = 8;
 
-  const CODE = {
-    fetch: { file: "emu/emu_cpu.c · run_program()", lines: [
-      ["const unsigned char *ins = &program[pc * 4];", true],
-      ["int result = execute_instruction(ins[0], ins[1],", true],
-      ["                ins[2], ins[3], memory, &pc);", true],
-    ]},
-    decode: { file: "emu/emu_cpu.c · execute_instruction()", lines: [
-      ["int rs2 = byte3;          /* byte 3 as a register (add, sub) */", false],
-      ["int imm = (int8_t)byte3;  /* byte 3 as a number, -128 to 127 */", true],
-      ["", false],
-      ["int dest_bad = (rd < 1 || rd >= NUM_REGS);", true],
-      ["int rs1_bad  = (rs1 >= NUM_REGS);", true],
-      ["case 5: case 6:  bad = dest_bad || rs1_bad;  break;", true],
-    ]},
-    read: { file: "emu/emu_cpu.c", lines: [
-      ["case 5:   /* addi rd, rs1, imm : r[rd] = r[rs1] + imm */", false],
-      ["    addi(rs1, imm, rd);", true],
-      ["", false],
-      ["void addi(int left, int immediate, int destination) {", false],
-      ["    r[destination] = r[left] + (uint32_t)immediate;", true],
-      ["}", false],
-    ]},
-    exec: { file: "emu/emu_cpu.c · addi()", lines: [
-      ["void addi(int left, int immediate, int destination) {", false],
-      ["    r[destination] = r[left] + (uint32_t)immediate;", true],
-      ["}", false],
-      ["/* uint32_t math wraps: 0 - 1 = 4294967295 */", false],
-    ]},
-    write: { file: "emu/emu_cpu.c · addi()", lines: [
-      ["void addi(int left, int immediate, int destination) {", false],
-      ["    r[destination] = r[left] + (uint32_t)immediate;", true],
-      ["}", false],
-      ["", false],
-      ["print_registers();   /* shows the registers after each instruction */", false],
-    ]},
-    pc: { file: "emu/emu_cpu.c · execute_instruction()", lines: [
-      ["int next_pc = *pc + 1;   /* normally go to the next instruction */", true],
-      ["...", false],
-      ["*pc = next_pc;           /* move to the next instruction (or the BNE target) */", true],
-      ["return stopped;          /* 1 if stop, otherwise 0 */", false],
-    ]},
-    decodeR: { file: "emu/emu_cpu.c · execute_instruction()", lines: [
-      ["int rs2 = byte3;          /* byte 3 as a register (add, sub) */", true],
-      ["int rs2_bad = (rs2 >= NUM_REGS);", true],
-      ["case 1: case 2:  bad = dest_bad || rs1_bad || rs2_bad;  break;", true],
-    ]},
-    readR: { file: "emu/emu_cpu.c", lines: [
-      ["case 1:   /* add rd, rs1, rs2 : r[rd] = r[rs1] + r[rs2] */", false],
-      ["    add(rs1, rs2, rd);", true],
-      ["case 2:   /* sub rd, rs1, rs2 : r[rd] = r[rs1] - r[rs2] */", false],
-      ["    r[rd] = r[rs1] - r[rs2];", true],
-    ]},
-    execR: { file: "emu/emu_cpu.c · add() / case 2", lines: [
-      ["void add(int left, int right, int destination) {", false],
-      ["    r[destination] = r[left] + r[right];", true],
-      ["}", false],
-      ["/* uint32_t math wraps: 100 - 200 = 4294967196 */", false],
-    ]},
-    writeR: { file: "emu/emu_cpu.c · add()", lines: [
-      ["    r[destination] = r[left] + r[right];", true],
-      ["", false],
-      ["print_registers();   /* shows the registers after each instruction */", false],
-    ]},
-    stop: { file: "emu/emu_cpu.c · execute_instruction()", lines: [
-      ["case 255:                 /* stop */", false],
-      ["    stopped = 1;", true],
-      ["    break;", false],
-      ["...", false],
-      ["return stopped;          /* run_program() ends when this is 1 */", true],
-    ]},
-    idle: { file: "emu/emu.h", lines: [
-      ["#define NUM_REGS  17   /* r[0]..r[16] (r[0] is unused) */", false],
-      ["#define MEM_SIZE  256  /* data memory: addresses 0..255 */", false],
-      ["", false],
-      ["/* Instruction format (4 bytes):", false],
-      ["     byte 0 = op     which instruction", true],
-      ["     byte 1 = rd     register destination", true],
-      ["     byte 2 = rs1    first source register", true],
-      ["     byte 3 = byte3  rs2 for add/sub, otherwise imm */", true],
-    ]},
-  };
-
   // ---------- parser plug-in (BEGIN) ----------
   const OPS = { add: 1, sub: 2, addi: 5, stop: 255 };
   function normalizeIns(x, i) {
@@ -169,7 +87,6 @@
     return e;
   };
   const txt = (attrs, s, parent) => { const t = el("text", attrs, parent); t.textContent = s; return t; };
-  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
   // geometry: 8 compact rows that fit inside the 170px program-memory panel (y 56..226)
   const MEM_ROW_TOP = (i) => 60 + i * 19;
@@ -302,31 +219,16 @@
       ? "Starting state: " + Object.entries(preset.init).map(([k, v]) => `r${k} = ${v}`).join(", ") + ". Every other register is 0."
       : "Starting state: every register is 0.";
     showStage(-1, "Ready",
-      `The program contains <span class="m">${program.length}</span> instruction${program.length === 1 ? "" : "s"}. ${startNote} Press Play to watch it run, or Step to go one stage at a time.`,
-      "idle");
+      `The program contains <span class="m">${program.length}</span> instruction${program.length === 1 ? "" : "s"}. ${startNote} Press Play to watch it run, or Step to go one stage at a time.`);
     updateButtons();
   }
 
   // ---------- narration ----------
-  function showStage(i, title, html, codeKey) {
+  function showStage(i, title, html) {
     const lis = $("steps").children;
     for (let k = 0; k < lis.length; k++) lis[k].className = k < i ? "done" : k === i ? "now" : "";
     $("stageTitle").textContent = title;
     $("stageText").innerHTML = html;
-
-    const current = program[pc] || preset;
-    const o = current.op || 5;
-    let k = codeKey;
-    if (o === 255 && !["idle", "fetch", "pc"].includes(k)) k = "stop";
-    else if ((o === 1 || o === 2) && CODE[k + "R"]) k += "R";
-
-    const c = CODE[k];
-    $("codeFile").textContent = c.file;
-    $("code").innerHTML = c.lines.map(([s, h]) => {
-      const m = s.match(/^(.*?)(\/\*.*\*\/)?$/);
-      const body = esc(m[1] || "") + (m[2] ? `<span class="c">${esc(m[2])}</span>` : "");
-      return `<span class="ln${h ? " hl" : ""}">${body || " "}</span>`;
-    }).join("");
   }
 
   // ---------- animation primitives ----------
@@ -360,7 +262,7 @@
 
   // ---------- the six stages ----------
   async function advancePc(narration) {
-    showStage(5, "Next PC", narration, "pc");
+    showStage(5, "Next PC", narration);
     hot($("adder"), true);
     await travel(T.pcAdd, String(pc), 600);
     await travel(T.pcBack, String(pc + 1), 800);
@@ -389,7 +291,7 @@
       : "";
 
     const fetch = async () => {
-      showStage(0, "Fetch", `The program counter holds <span class="m">${pc}</span>, so the CPU reads the 4 bytes at instruction ${pc}: <span class="m">${b.map(hex2).join(" ")}</span>. Every instruction in this CPU is exactly 4 bytes long.`, "fetch");
+      showStage(0, "Fetch", `The program counter holds <span class="m">${pc}</span>, so the CPU reads the 4 bytes at instruction ${pc}: <span class="m">${b.map(hex2).join(" ")}</span>. Every instruction in this CPU is exactly 4 bytes long.`);
       hot($("pcCell"), true); hot(mem[pc].rect, true);
       await travel(T.addr, "pc " + pc, 800);
       T.fetch.setAttribute("d", `M250,${MEM_ROW_Y(pc)} H278 V94 H316`);
@@ -403,10 +305,10 @@
     if (op === 255) {
       return [
         fetch,
-        async () => { showStage(1, "Decode", `Byte 0 is the opcode: <span class="m">255</span> means <span class="m">stop</span>. Bytes 1 to 3 are not used.`, "decode"); hot(ir[0].rect, true); ir[0].dec.textContent = "STOP"; await wait(900); ir.forEach((c) => hot(c.rect, false)); },
-        async () => { showStage(2, "Read", `Stop reads no registers, so nothing travels to the ALU.`, "read"); await wait(900); },
-        async () => { showStage(3, "Execute", `Nothing to compute. The CPU only sets <span class="m">stopped = 1</span>.`, "exec"); $("aluOp").textContent = "halt"; hot($("alu"), true); await wait(900); hot($("alu"), false); },
-        async () => { showStage(4, "Write back", `Stop writes nothing. Every register keeps its value.`, "write"); await wait(900); },
+        async () => { showStage(1, "Decode", `Byte 0 is the opcode: <span class="m">255</span> means <span class="m">stop</span>. Bytes 1 to 3 are not used.`); hot(ir[0].rect, true); ir[0].dec.textContent = "STOP"; await wait(900); ir.forEach((c) => hot(c.rect, false)); },
+        async () => { showStage(2, "Read", `Stop reads no registers, so nothing travels to the ALU.`); await wait(900); },
+        async () => { showStage(3, "Execute", `Nothing to compute. The CPU only sets <span class="m">stopped = 1</span>.`); $("aluOp").textContent = "halt"; hot($("alu"), true); await wait(900); hot($("alu"), false); },
+        async () => { showStage(4, "Write back", `Stop writes nothing. Every register keeps its value.`); await wait(900); },
         () => advancePc(`The pc still moves to <span class="m">${pc} + 1 = ${pc + 1}</span>, but <span class="m">execute_instruction()</span> returned 1, so <span class="m">run_program()</span> ends the program here.`),
       ];
     }
@@ -414,7 +316,7 @@
     return [
       fetch,
       async () => {
-        showStage(1, "Decode", reg2 ? `Byte 0 is the opcode: <span class="m">${op}</span> means <span class="m">${name}</span>. Byte 1 is the destination <span class="m">r${p.rd}</span>, byte 2 is the first source <span class="m">r${p.rs1}</span>, and byte 3 is the second source <span class="m">r${p.rs2}</span>. For add and sub, byte 3 is a register, not a number, so there is nothing to sign-extend. All three register numbers pass the range check.` : `Byte 0 is the opcode: <span class="m">5</span> means <span class="m">addi</span>. Byte 1 picks the destination register <span class="m">r${p.rd}</span> and byte 2 the source <span class="m">r${p.rs1}</span>. Both pass the range check (r1 to r16 for a destination). ${signNote}`, reg2 ? "decodeR" : "decode");
+        showStage(1, "Decode", reg2 ? `Byte 0 is the opcode: <span class="m">${op}</span> means <span class="m">${name}</span>. Byte 1 is the destination <span class="m">r${p.rd}</span>, byte 2 is the first source <span class="m">r${p.rs1}</span>, and byte 3 is the second source <span class="m">r${p.rs2}</span>. For add and sub, byte 3 is a register, not a number, so there is nothing to sign-extend. All three register numbers pass the range check.` : `Byte 0 is the opcode: <span class="m">5</span> means <span class="m">addi</span>. Byte 1 picks the destination register <span class="m">r${p.rd}</span> and byte 2 the source <span class="m">r${p.rs1}</span>. Both pass the range check (r1 to r16 for a destination). ${signNote}`);
         hot(ir[0].rect, true); ir[0].dec.textContent = name.toUpperCase(); await wait(450);
         hot(ir[1].rect, true); ir[1].dec.textContent = "r" + p.rd; await wait(350);
         hot(ir[2].rect, true); ir[2].dec.textContent = "r" + p.rs1; await wait(350);
@@ -434,14 +336,14 @@
       },
       async () => {
         if (reg2) {
-          showStage(2, "Read", `The register file sends <span class="m">r${p.rs1}</span>, which holds <span class="m">${fmt(a)}</span>, to ALU input A and <span class="m">r${p.rs2}</span>, which holds <span class="m">${fmt(bv)}</span>, to input B.`, "read");
+          showStage(2, "Read", `The register file sends <span class="m">r${p.rs1}</span>, which holds <span class="m">${fmt(a)}</span>, to ALU input A and <span class="m">r${p.rs2}</span>, which holds <span class="m">${fmt(bv)}</span>, to input B.`);
           hot(regs[p.rs1].rect, true); hot(regs[p.rs2].rect, true);
           await Promise.all([travel(T.read2, fmt(a), 1300), travel(T.read, fmt(bv), 1300)]);
           hot(regs[p.rs1].rect, false); hot(regs[p.rs2].rect, false);
           $("aluA").textContent = `A = ${fmt(a)}  B = ${fmt(bv)}`;
           return;
         }
-        showStage(2, "Read", `The register file sends <span class="m">r${p.rs1}</span>, which holds <span class="m">${fmt(a)}</span>, to ALU input A. The sign-extended immediate <span class="m">${p.imm}</span> goes to input B.`, "read");
+        showStage(2, "Read", `The register file sends <span class="m">r${p.rs1}</span>, which holds <span class="m">${fmt(a)}</span>, to ALU input A. The sign-extended immediate <span class="m">${p.imm}</span> goes to input B.`);
         hot(regs[p.rs1].rect, true);
         await Promise.all([travel(T.read, fmt(a), 1300), travel(T.sxAlu, String(p.imm), 700)]);
         hot(regs[p.rs1].rect, false);
@@ -450,7 +352,7 @@
       async () => {
         if (reg2) {
           const wraps = op === 2 ? a < bv : a + bv > 0xFFFFFFFF;
-          showStage(3, "Execute", `The ALU ${op === 2 ? "subtracts" : "adds"} the two inputs: <span class="m">${fmt(a)} ${sym} ${fmt(bv)} = ${fmt(result)}</span>.${wraps ? " Registers are unsigned 32-bit, so the result wraps around." : ""}`, "exec");
+          showStage(3, "Execute", `The ALU ${op === 2 ? "subtracts" : "adds"} the two inputs: <span class="m">${fmt(a)} ${sym} ${fmt(bv)} = ${fmt(result)}</span>.${wraps ? " Registers are unsigned 32-bit, so the result wraps around." : ""}`);
           hot($("alu"), true);
           $("aluOp").textContent = `${fmt(a)} ${sym} ${fmt(bv)}`;
           await wait(900);
@@ -459,7 +361,7 @@
           hot($("alu"), false);
           return;
         }
-        showStage(3, "Execute", `The ALU adds the two inputs: <span class="m">${fmt(a)} + (${p.imm}) = ${fmt(result)}</span>.${wrapNote}`, "exec");
+        showStage(3, "Execute", `The ALU adds the two inputs: <span class="m">${fmt(a)} + (${p.imm}) = ${fmt(result)}</span>.${wrapNote}`);
         hot($("alu"), true);
         $("aluOp").textContent = `${fmt(a)} ${p.imm < 0 ? "−" : "+"} ${Math.abs(p.imm)}`;
         await wait(900);
@@ -468,7 +370,7 @@
         hot($("alu"), false);
       },
       async () => {
-        showStage(4, "Write back", `The result goes into <span class="m">r${p.rd}</span>. ${p.rd === p.rs1 ? "Source and destination are the same register, so its old value is replaced." : `r${p.rs1} keeps its value; only r${p.rd} changes.`}`, "write");
+        showStage(4, "Write back", `The result goes into <span class="m">r${p.rd}</span>. ${p.rd === p.rs1 ? "Source and destination are the same register, so its old value is replaced." : `r${p.rs1} keeps its value; only r${p.rd} changes.`}`);
         await travel(T.write, fmt(result), 1300);
         R[p.rd] = result; renderRegs();
         hot(regs[p.rd].rect, true); flash(regs[p.rd].rect);
