@@ -1,0 +1,18 @@
+{
+    "program": {
+        "name": "program_name",
+        "instructions": [
+            {
+                "address": 0,
+                "assembly": "instruction",
+                "machineCode": "32-bit machine code",
+                "opcode": "opcode",
+                "type": "instruction type",
+                "rd": null,
+                "rs1": null,
+                "rs2": null,
+                "imm": null
+            }
+        ]
+    }
+}
