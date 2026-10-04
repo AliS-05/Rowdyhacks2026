@@ -3,7 +3,8 @@
 #include "emu.h"
 #include "helpers.h"
 
-extern uint8_t* memory;
+
+extern uint8_t memory[MEM_SIZE];
 uint32_t r[NUM_REGS] = {0};   // r[1] to r[16]; r[0] is unused
 struct CurrentJSONInstruction CurrentJSONInstruction= {0};
 int pc = 0;
@@ -50,7 +51,7 @@ void addi(uint32_t* instruction) {
 
 	uint8_t rs1    = (inst >> 15) & 0x1F;
 
-	uint8_t imm = (inst >> 25) & 0x7F;
+	uint16_t imm = (inst >> 20);
 
 	r[rd] = r[rs1] + imm;
 }
@@ -64,13 +65,18 @@ void load(uint32_t* instruction) {
 	uint8_t funct3 = (inst >> 12) & 0x07;
 	uint8_t rs1    = (inst >> 15) & 0x1F;
 	//uint8_t rs2    = (inst >> 20) & 0x1F;
-	uint16_t imm = (inst >> 25) & 0x7F;
+	uint16_t imm = (inst >> 20);
 	
 	uint32_t address = r[rs1] + imm;
 	if(address > MEM_SIZE - 4){
 		printf("ERROR: MEMORY OOB\n");
 	}
-	r[rd]= memory[address] | memory[address + 1] | memory[address + 2] | memory[address + 3];
+	r[rd] =
+		(uint32_t)memory[address]
+		| ((uint32_t)memory[address + 1] << 8)
+		| ((uint32_t)memory[address + 2] << 16)
+		| ((uint32_t)memory[address + 3] << 24);
+
 	//uint32_t address = r[base] + (uint32_t)offset;
 	//if (address > MEM_SIZE - 4) { printf("bad load at %u\n", (unsigned)address); return; }
 	//r[destination] = (uint32_t)memory[address]              
@@ -115,9 +121,24 @@ void arithmetic(uint32_t* instruction){
 	switch(funct7){
 		case 0b0: //add
 			r[rd] = r[rs1] + r[rs2];
+			recordInstruction(
+					"add",
+					opcode,
+					returnRegisterString(rd),
+					returnRegisterString(rs1),
+					returnRegisterString(rs2)
+					);
 			break;
 		case 0b0100000: //sub
 			r[rd] = r[rs1] - r[rs2];
+			recordInstruction(
+					"sub",
+					opcode,
+					returnRegisterString(rd),
+					returnRegisterString(rs1),
+					returnRegisterString(rs2)
+					);
+
 			break;
 	}
 }
@@ -177,7 +198,7 @@ int execute_instruction(uint32_t* instruction) {
 
 		case BNE: { // BNE rs1, rs2, offset
 			bne(instruction);
-			break;
+			return 0;
 		}
 
 		case HALT:

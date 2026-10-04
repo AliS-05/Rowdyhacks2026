@@ -63,6 +63,8 @@ static int check_expected(void) {
 	return fails ? 1 : 0;
 }
 
+
+
 int main(int argc, char *argv[]) {
 	int self_test = 0;
 	if (argc != 2) {
