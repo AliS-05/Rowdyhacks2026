@@ -157,7 +157,7 @@ int execute_instruction(int op, int rd, int rs1, int byte3, unsigned char memory
     int dest_bad = (rd < 1 || rd >= NUM_REGS);
     int src_bad  = (rs1 < 0 || rs1 >= NUM_REGS);
     int b_bad    = (rs1 >= NUM_REGS);
-    int c_bad    = (c >= NUM_REGS);
+    int c_bad    = (byte3 >= NUM_REGS);
     int bad = 0;
  
     switch (op) {
