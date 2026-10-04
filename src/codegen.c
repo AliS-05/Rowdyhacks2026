@@ -178,7 +178,12 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			instruction |= ((immediate >> 11) & 0x1) << 7;
 			ByteVectorWrite32(byteVector, instruction);
 			break;
-			}
+		}
+		
+		case INST_HALT: {
+			ByteVectorWrite32(byteVector, 0xFF);
+			break;
+		}
 
 
 		case INST_MOV: {

@@ -138,7 +138,7 @@ MnemonicType strToInstructionType(const char* str) {
 	if (!strcmp(str, "add"))  return INST_ADD;
 	if (!strcmp(str, "sub"))  return INST_SUB;
 	if (!strcmp(str, "bne"))  return INST_BNE;
-
+	if (!strcmp(str, "halt")) return INST_HALT;
 	if (!strcmp(str, "mov"))  return INST_MOV;
 	if (!strcmp(str, "jmp"))  return INST_JMP;
 	if (!strcmp(str, "call")) return INST_CALL;
@@ -162,6 +162,7 @@ const char* mnemonicTypeToStr(MnemonicType type){
 		case INST_ADD: return "add";
 		case INST_SUB: return "sub";
 		case INST_BNE: return "bne";
+		case INST_HALT: return "halt";
 
 		case INST_LABEL: return "label";
 		case INST_MOV:  return "mov";

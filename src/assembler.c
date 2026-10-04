@@ -49,7 +49,7 @@ void assemble_buffer(char* buffer){
 	// in addresses
 	for(int i = 0; i < instVec.size; i++){
 		if(instVec.data[i].mnemonic == INST_LABEL){
-			symbolTablePush(&table, instVec.data[i].labelName ,instVec.data[i].address);
+			symbolTablePush(&table, instVec.data[i].labelName, instVec.data[i].address);
 		}
 	}
 	

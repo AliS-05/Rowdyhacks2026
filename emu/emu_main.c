@@ -63,6 +63,8 @@ static int check_expected(void) {
 	return fails ? 1 : 0;
 }
 
+
+
 int main(int argc, char *argv[]) {
 	int self_test = 0;
 	if (argc != 2) {
@@ -76,6 +78,7 @@ int main(int argc, char *argv[]) {
 
 	/* 2. RUN it (emu_cpu.c) */
 	FILE* jsonOutput = fopen("cpu_json_output.json", "w");
+	initCurrentJSONInstruction();
 	if (run_program(program, count, jsonOutput) != 0) return 1;
 
 	/* 3. Show the result */

@@ -14,3 +14,5 @@ sub r4, r5, r6
 
 bne r1, r2, 8
 bne r3, r4, 16
+
+halt

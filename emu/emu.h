@@ -1,10 +1,14 @@
 #pragma once
 #include <stdint.h>
-
+#include "helpers.h"
 #define NUM_REGS  17          /* r[0]..r[16] (r[0] is unused) */
 #define MEM_SIZE  65535         /* data memory: addresses 0..255 */
 #define MAX_INSTR 1024        /* biggest program we accept */
 #define MAX_STEPS 100000      /* stops a program that loops forever */
+#define MAX_OPERANDS 3
+#define MAX_MEMORY_DIFFS 4
+
+
 
 typedef enum {
 	ADD = 0b0110011,
@@ -44,13 +48,17 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput);
 struct CurrentJSONInstruction {
 	int cycle_number;
 	int program_counter;
+
 	char* instruction_mnemonic;
 	uint32_t opcode;
-	char** operands; //ie list of strings, ["r1", "r2", "r3"]
-	uint32_t* registerStates;
-	//an array that corresponds with memoryDiff to tell us what *location* was diffed with what *value*
-	uint8_t* memoryLocationsDiffed;  //locations, ie 1024
-	uint8_t* memoryValuesDiffed; //value ie 5 -> 10
-	uint8_t* memory_old_value;
-};
 
+	char** operands;
+	int operand_count;
+
+	uint32_t* registerStates;
+
+	uint32_t* memoryLocationsDiffed;
+	uint8_t* memoryValuesDiffed;
+	uint8_t* memory_old_value;
+	int memory_diff_count;
+};

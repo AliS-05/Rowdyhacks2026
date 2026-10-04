@@ -13,6 +13,7 @@ typedef enum {
 	INST_ADD,
 	INST_SUB,
 	INST_BNE,
+	INST_HALT,
 
 
 	INST_MOV,
