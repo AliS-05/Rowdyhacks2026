@@ -135,7 +135,7 @@
   ptr.style.transform = `translateY(${MEM_ROW_Y(0)}px)`;
 
   const mem = [];
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 8; i++) {
     const top = MEM_ROW_TOP(i);
     const row = { rect: el("rect", { class: "cell", x: 36, y: top, width: 214, height: 44, rx: 5 }, memRows) };
     txt({ class: "silk-dim", x: 46, y: top + 19 }, String(i), memRows);
@@ -178,16 +178,35 @@
 
   // ---------- state ----------
   let preset = PRESETS[0];
+  let program = [];
   let R = new Uint32Array(17);
   let pc = 0, stage = 0, busy = false, playing = false;
 
-  function setTraceRoutes() {
-    const two = preset.op === 1 || preset.op === 2;
-    const ry = REG_ROW_Y(two ? preset.rs2 : preset.rs1) - 5, wy = REG_ROW_Y(preset.rd) + 5;
-    T.read2.setAttribute("d", two ? `M736,${REG_ROW_Y(preset.rs1) - 5} H712 V292 H415 V300` : "M0,0");
-    T.read.setAttribute("d", `M736,${ry} H700 V284 H525 V300`);
-    T.write.setAttribute("d", `M470,380 V500 H714 V${wy} H736`);
-  }
+function setTraceRoutes() {
+  const p = program[pc] || preset;
+
+  const two = p.op === 1 || p.op === 2;
+
+  const ry = REG_ROW_Y(two ? p.rs2 : p.rs1) - 5;
+  const wy = REG_ROW_Y(p.rd) + 5;
+
+  T.read2.setAttribute(
+    "d",
+    two
+      ? `M736,${REG_ROW_Y(p.rs1) - 5} H712 V292 H415 V300`
+      : "M0,0"
+  );
+
+  T.read.setAttribute(
+    "d",
+    `M736,${ry} H700 V284 H525 V300`
+  );
+
+  T.write.setAttribute(
+    "d",
+    `M470,380 V500 H714 V${wy} H736`
+  );
+}
 
   function hot(node, on) { node.classList.toggle("hot", on); }
   function clearHot() {
@@ -211,51 +230,108 @@
   function reset() {
     playing = false;
     R = new Uint32Array(17);
-    for (const k in preset.init) R[k] = preset.init[k];
-    pc = 0; stage = 0;
+
+    for(const k in preset.init){
+       R[k] = preset.init[k];
+    }
+
+    pc = 0;
+    stage = 0;
     packets.textContent = "";
     clearHot();
+
+    if(preset.program){
+      program = preset.program;
+    }else{
+      program = [preset];
+    }
     setTraceRoutes();
-    const b = bytesOf(preset);
-    b.forEach((v, i) => (mem[0].bytes[i].textContent = hex2(v)));
-    mem[0].dis.textContent = preset.asm;
-    const one = preset.op === 255;
-    (one ? [0, 0, 0, 0] : [255, 0, 0, 0]).forEach((v, i) => (mem[1].bytes[i].textContent = hex2(v)));
-    mem[1].dis.textContent = one ? "(end of program)" : "stop";
-    $("memNote").textContent = one ? "count = 1 instruction" : "count = 2 instructions";
-    ir.forEach((c) => { c.byte.textContent = "--"; c.dec.textContent = ""; });
-    $("pcVal").textContent = "0";
-    ptr.style.transform = `translateY(${MEM_ROW_Y(0)}px)`;
-    $("sxVal").textContent = "—";
-    $("aluOp").textContent = "idle"; $("aluA").textContent = ""; $("aluOut").textContent = "";
-    renderRegs();
-    const startNote = Object.keys(preset.init).length
-      ? "Starting state: " + Object.entries(preset.init).map(([k, v]) => `r${k} = ${v}`).join(", ") + ". Every other register is 0."
-      : "Starting state: every register is 0.";
-    showStage(-1, "Ready", `${preset.op === 255 ? 'The program is one instruction: <span class="m">stop</span>.' : `The program is two instructions: <span class="m">${preset.asm}</span> then <span class="m">stop</span>.`} ${startNote} Press Play to watch it run, or Step to go one stage at a time.`, "idle");
-    updateButtons();
-  }
+
+    mem.forEach((row) =>{
+      row.bytes.forEach((b) => b.textContent = "00");
+      row.dis.textContent = "";
+    });
+
+    program.forEach((p, i) => {
+      if(i >= mem.length) return;
+
+      const b = bytesOf(p);
+      b.forEach((v, j) => {
+        mem[i].bytes[j].textContent = hex2(v);
+      });
+
+      mem[i].dis.textContent = p.asm;
+    });
+$("memNote").textContent =
+  `count = ${program.length} instruction${program.length === 1 ? "" : "s"}`;    ir.forEach((c) => {
+    c.byte.textContent = "--";
+    c.dec.textContent = "";
+  });
+
+  $("pcVal").textContent = "0";
+  ptr.style.transform = `translateY(${MEM_ROW_Y(0)}px)`;
+
+  $("sxVal").textContent = "—";
+  $("aluOp").textContent = "idle";
+  $("aluA").textContent = "";
+  $("aluOut").textContent = "";
+
+  renderRegs();
+
+  const startNote = Object.keys(preset.init).length
+    ? "Starting state: " +
+      Object.entries(preset.init)
+        .map(([k, v]) => `r${k} = ${v}`)
+        .join(", ") +
+      ". Every other register is 0."
+    : "Starting state: every register is 0.";
+
+
+  showStage(
+    -1,
+    "Ready",
+    `The program contains <span class="m">${program.length}</span> instruction${program.length === 1 ? "" : "s"}. ${startNote} Press Play to watch it run, or Step to go one stage at a time.`,
+    "idle"
+  );
+
+  updateButtons();
+}
+  
 
   // ---------- narration ----------
-  function showStage(i, title, html, codeKey) {
-    const lis = $("steps").children;
-    for (let k = 0; k < lis.length; k++) {
-      lis[k].className = k < i ? "done" : k === i ? "now" : "";
-    }
-    $("stageTitle").textContent = title;
-    $("stageText").innerHTML = html;
-    const o = preset.op || 5;
-    let k = codeKey;
-    if (o === 255 && !["idle", "fetch", "pc"].includes(k)) k = "stop";
-    else if ((o === 1 || o === 2) && CODE[k + "R"]) k += "R";
-    const c = CODE[k];
-    $("codeFile").textContent = c.file;
-    $("code").innerHTML = c.lines.map(([s, h]) => {
-      const m = s.match(/^(.*?)(\/\*.*\*\/)?$/);
-      const body = esc(m[1] || "") + (m[2] ? `<span class="c">${esc(m[2])}</span>` : "");
-      return `<span class="ln${h ? " hl" : ""}">${body || " "}</span>`;
-    }).join("");
+ function showStage(i, title, html, codeKey) {
+  const lis = $("steps").children;
+
+  for (let k = 0; k < lis.length; k++) {
+    lis[k].className = k < i ? "done" : k === i ? "now" : "";
   }
+
+  $("stageTitle").textContent = title;
+  $("stageText").innerHTML = html;
+
+  const current = program[pc] || preset;
+  const o = current.op || 5;
+
+  let k = codeKey;
+
+  if (o === 255 && !["idle", "fetch", "pc"].includes(k)) {
+    k = "stop";
+  } else if ((o === 1 || o === 2) && CODE[k + "R"]) {
+    k += "R";
+  }
+
+  const c = CODE[k];
+
+  $("codeFile").textContent = c.file;
+  $("code").innerHTML = c.lines.map(([s, h]) => {
+    const m = s.match(/^(.*?)(\/\*.*\*\/)?$/);
+    const body =
+      esc(m[1] || "") +
+      (m[2] ? `<span class="c">${esc(m[2])}</span>` : "");
+
+    return `<span class="ln${h ? " hl" : ""}">${body || " "}</span>`;
+  }).join("");
+}
 
   // ---------- animation primitives ----------
   const speed = () => parseFloat($("speedSel").value) || 1;
@@ -288,7 +364,7 @@
 
   // ---------- the six stages of addi ----------
   function stageFns() {
-    const p = preset, op = p.op || 5, reg2 = op === 1 || op === 2, b = bytesOf(p);
+    const p = program[pc], op = p.op || 5, reg2 = op === 1 || op === 2, b = bytesOf(p);
     const name = { 1: "add", 2: "sub", 5: "addi", 255: "stop" }[op], sym = op === 2 ? "−" : "+";
     const a = R[p.rs1], bv = reg2 ? R[p.rs2] : (p.imm >>> 0);
     const result = op === 2 ? (a - bv) >>> 0 : (a + bv) >>> 0;
@@ -302,11 +378,12 @@
     const all = [
       async () => {
         showStage(0, "Fetch", `The program counter holds <span class="m">${pc}</span>, so the CPU reads the 4 bytes at instruction ${pc}: <span class="m">${b.map(hex2).join(" ")}</span>. Every instruction in this CPU is exactly 4 bytes long.`, "fetch");
-        hot($("pcCell"), true); hot(mem[0].rect, true);
+        hot($("pcCell"), true); hot(mem[pc].rect, true);
         await travel(T.addr, "pc " + pc, 800);
+        T.fetch.setAttribute("d", `M250,${MEM_ROW_Y(pc)} H278 V94 H316`);
         await travel(T.fetch, b.map(hex2).join(" "), 1300);
         b.forEach((v, i) => { ir[i].byte.textContent = hex2(v); hot(ir[i].rect, true); });
-        hot($("pcCell"), false); hot(mem[0].rect, false);
+        hot($("pcCell"), false); hot(mem[pc].rect, false);
         await wait(350);
         ir.forEach((c) => hot(c.rect, false));
       },
@@ -372,64 +449,181 @@
         await wait(700);
         hot(regs[p.rd].rect, false);
       },
-      async () => {
-        showStage(5, "Next PC", `${name} never jumps, so the program counter becomes <span class="m">${pc} + 1 = ${pc + 1}</span>. The next instruction is <span class="m">ff 00 00 00</span> (opcode 255), which stops the program. Final value: <span class="m">r${p.rd} = ${fmt(R[p.rd])}</span>.`, "pc");
-        hot($("adder"), true);
-        await travel(T.pcAdd, String(pc), 600);
-        await travel(T.pcBack, String(pc + 1), 800);
-        pc += 1; $("pcVal").textContent = String(pc);
-        ptr.style.transform = `translateY(${MEM_ROW_Y(pc)}px)`;
-        hot($("adder"), false);
-        hot(mem[1].rect, true);
-      },
-    ];
-    if (op !== 255) return all;
-    const nextPc = async () => {
-      showStage(5, "Next PC", `The pc still moves to <span class="m">${pc} + 1 = ${pc + 1}</span>, but <span class="m">execute_instruction()</span> returned 1, so <span class="m">run_program()</span> ends the program here.`, "pc");
-      hot($("adder"), true);
-      await travel(T.pcAdd, String(pc), 600);
-      await travel(T.pcBack, String(pc + 1), 800);
-      pc += 1; $("pcVal").textContent = String(pc);
-      ptr.style.transform = `translateY(${MEM_ROW_Y(pc)}px)`;
-      hot($("adder"), false); hot(mem[1].rect, true);
-    };
-    return [all[0],
-      async () => { showStage(1, "Decode", `Byte 0 is the opcode: <span class="m">255</span> means <span class="m">stop</span>. Bytes 1 to 3 are not used.`, "decode"); hot(ir[0].rect, true); ir[0].dec.textContent = "STOP"; await wait(900); ir.forEach((c) => hot(c.rect, false)); },
-      async () => { showStage(2, "Read", `Stop reads no registers, so nothing travels to the ALU.`, "read"); await wait(900); },
-      async () => { showStage(3, "Execute", `Nothing to compute. The CPU only sets <span class="m">stopped = 1</span>.`, "exec"); $("aluOp").textContent = "halt"; hot($("alu"), true); await wait(900); hot($("alu"), false); },
-      async () => { showStage(4, "Write back", `Stop writes nothing. Every register keeps its value.`, "write"); await wait(900); },
-      nextPc];
+async () => {
+  const next = program[pc + 1];
+
+  showStage(
+    5,
+    "Next PC",
+    next
+      ? `${name} never jumps, so the program counter becomes <span class="m">${pc} + 1 = ${pc + 1}</span>. The CPU will fetch instruction <span class="m">${pc + 1}</span> next: <span class="m">${next.asm}</span>. Final value: <span class="m">r${p.rd} = ${fmt(R[p.rd])}</span>.`
+      : `${name} never jumps, so the program counter becomes <span class="m">${pc} + 1 = ${pc + 1}</span>. There are no more instructions, so the program is complete. Final value: <span class="m">r${p.rd} = ${fmt(R[p.rd])}</span>.`,
+    "pc"
+  );
+
+  hot($("adder"), true);
+
+  await travel(T.pcAdd, String(pc), 600);
+  await travel(T.pcBack, String(pc + 1), 800);
+
+  pc += 1;
+  $("pcVal").textContent = String(pc);
+
+  if (pc < mem.length) {
+    ptr.style.transform = `translateY(${MEM_ROW_Y(pc)}px)`;
+    hot(mem[pc].rect, true);
   }
+
+  hot($("adder"), false);
+},
+    ];
+if (op !== 255) return all;
+
+const nextPc = async () => {
+  showStage(
+    5,
+    "Next PC",
+    `The pc still moves to <span class="m">${pc} + 1 = ${pc + 1}</span>, but <span class="m">execute_instruction()</span> returned 1, so <span class="m">run_program()</span> ends the program here.`,
+    "pc"
+  );
+
+  hot($("adder"), true);
+
+  await travel(T.pcAdd, String(pc), 600);
+  await travel(T.pcBack, String(pc + 1), 800);
+
+  pc += 1;
+  $("pcVal").textContent = String(pc);
+
+  if (pc < mem.length) {
+    ptr.style.transform = `translateY(${MEM_ROW_Y(pc)}px)`;
+    hot(mem[pc].rect, true);
+  }
+
+  hot($("adder"), false);
+};
+
+return [
+  all[0],
+
+  async () => {
+    showStage(
+      1,
+      "Decode",
+      `Byte 0 is the opcode: <span class="m">255</span> means <span class="m">stop</span>. Bytes 1 to 3 are not used.`,
+      "decode"
+    );
+
+    hot(ir[0].rect, true);
+    ir[0].dec.textContent = "STOP";
+
+    await wait(900);
+
+    ir.forEach((c) => hot(c.rect, false));
+  },
+
+  async () => {
+    showStage(
+      2,
+      "Read",
+      `Stop reads no registers, so nothing travels to the ALU.`,
+      "read"
+    );
+
+    await wait(900);
+  },
+
+  async () => {
+    showStage(
+      3,
+      "Execute",
+      `Nothing to compute. The CPU only sets <span class="m">stopped = 1</span>.`,
+      "exec"
+    );
+
+    $("aluOp").textContent = "halt";
+    hot($("alu"), true);
+
+    await wait(900);
+
+    hot($("alu"), false);
+  },
+
+  async () => {
+    showStage(
+      4,
+      "Write back",
+      `Stop writes nothing. Every register keeps its value.`,
+      "write"
+    );
+
+    await wait(900);
+  },
+
+  nextPc
+];
+}
 
   // ---------- controls ----------
   async function step() {
-    if (busy || stage >= STAGES.length) return;
-    busy = true; updateButtons();
-    await stageFns()[stage]();
-    stage++;
-    busy = false;
-    if (stage >= STAGES.length) {
+  if (busy || pc >= program.length) return;
+
+  busy = true;
+  updateButtons();
+
+  const currentPc = pc;
+
+  await stageFns()[stage]();
+
+  stage++;
+
+  if (stage >= STAGES.length) {
+    if (program[currentPc].op === 255) {
       const lis = $("steps").children;
       for (const li of lis) li.className = "done";
+    } else if (pc < program.length) {
+      stage = 0;
+      setTraceRoutes();
+      clearHot();
     }
-    updateButtons();
   }
-  async function play() {
-    if (stage >= STAGES.length) reset();
-    playing = true; updateButtons();
-    while (playing && stage < STAGES.length) {
-      await step();
-      if (playing && stage < STAGES.length) await wait(450);
+
+  busy = false;
+  updateButtons();
+}
+async function play() {
+  if (pc >= program.length) reset();
+
+  playing = true;
+  updateButtons();
+
+  while (playing && pc < program.length) {
+    await step();
+
+    if (playing && pc < program.length) {
+      await wait(450);
     }
-    playing = false; updateButtons();
   }
-  function updateButtons() {
-    const done = stage >= STAGES.length;
-    $("playBtn").textContent = playing ? "Pause" : done ? "Replay" : stage > 0 ? "Resume" : "Play";
-    $("stepBtn").disabled = busy || playing || done;
-    $("resetBtn").disabled = busy || playing;
-    document.querySelectorAll("#presetChips .chip").forEach((c) => (c.disabled = busy || playing));
-  }
+
+  playing = false;
+  updateButtons();
+}
+function updateButtons() {
+  const done = pc >= program.length ||
+               (program[pc] && program[pc].op === 255 && stage >= STAGES.length);
+
+  $("playBtn").textContent =
+    playing ? "Pause" :
+    done ? "Replay" :
+    stage > 0 ? "Resume" : "Play";
+
+  $("stepBtn").disabled = busy || playing || done;
+  $("resetBtn").disabled = busy || playing;
+
+  document.querySelectorAll("#presetChips .chip").forEach(
+    (c) => (c.disabled = busy || playing)
+  );
+}
 
   $("playBtn").addEventListener("click", () => { if (playing) { playing = false; updateButtons(); } else play(); });
   $("stepBtn").addEventListener("click", step);
@@ -464,35 +658,128 @@
   ).join("");
 
   // ---------- your own input ----------
-  function parseInput(asm, regsText) {
-    const line = asm.trim().replace(/\s+/g, " "), n = (x) => Number(x);
-    const regOk = (v, lo, what) => { if (v < lo || v > 16) throw `${what} must be r${lo} to r16, but you typed r${v}.`; return v; };
+function parseInput(asm, regsText) {
+  const lines = asm
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(line => line.length > 0);
+
+  const n = (x) => parseInt(x, 10);
+
+  const regOk = (v, lo, what) => {
+    if (v < lo || v > 16) {
+      throw `${what} must be r${lo} to r16, but you typed r${v}.`;
+    }
+
+    return v;
+  };
+
+  if (lines.length === 0) {
+    throw "Enter at least one instruction.";
+  }
+
+  if(lines.length > 8){
+    throw "The CPU has only 8 instruction slots, so you can enter at most 8 instructions.";
+  }
+
+  const program = [];
+
+  for (const line of lines) {
     let m, pr;
-    if (/^stop$/i.test(line)) pr = { op: 255, rd: 0, rs1: 0 };
-    else if ((m = line.match(/^(add|sub) r(\d+) ?, ?r(\d+) ?, ?r(\d+)$/i)))
-      pr = { op: m[1].toLowerCase() === "add" ? 1 : 2, rd: regOk(n(m[2]), 1, "The destination"), rs1: regOk(n(m[3]), 0, "The first source"), rs2: regOk(n(m[4]), 0, "The second source") };
-    else if ((m = line.match(/^addi r(\d+) ?, ?r(\d+) ?, ?(-?\d+)$/i))) {
+
+    if (/^stop$/i.test(line)) {
+      pr = {
+        op: 255,
+        rd: 0,
+        rs1: 0,
+        asm: "stop"
+      };
+    }
+
+    else if ((m = line.match(
+      /^(add|sub) r(\d+) ?, ?r(\d+) ?, ?r(\d+)$/i
+    ))) {
+      pr = {
+        op: m[1].toLowerCase() === "add" ? 1 : 2,
+        rd: regOk(n(m[2]), 1, "The destination"),
+        rs1: regOk(n(m[3]), 0, "The first source"),
+        rs2: regOk(n(m[4]), 0, "The second source"),
+        asm: line.toLowerCase()
+      };
+    }
+
+    else if ((m = line.match(
+      /^addi r(\d+) ?, ?r(\d+) ?, ?(-?\d+)$/i
+    ))) {
       const imm = n(m[3]);
-      if (imm < -128 || imm > 127) throw `The number must fit in one signed byte (-128 to 127), but you typed ${imm}.`;
-      pr = { rd: regOk(n(m[1]), 1, "The destination"), rs1: regOk(n(m[2]), 0, "The source"), imm };
-    } else if (/^(ldb|stb|lw|sw|bne)\b/i.test(line)) throw `${line.split(" ")[0]} is not animated yet. Try add, sub, addi or stop.`;
-    else throw `Could not read "${asm}". Try: add r3, r1, r2 | sub r3, r2, r1 | addi r1, r1, 5 | stop`;
-    const init = {}, t = regsText.trim();
-    if (t) for (const part of t.split(/[,;]+|\s+(?=r\d)/)) {
+
+      if (imm < -128 || imm > 127) {
+        throw `The number must fit in one signed byte (-128 to 127), but you typed ${imm}.`;
+      }
+
+      pr = {
+        op: 5,
+        rd: regOk(n(m[1]), 1, "The destination"),
+        rs1: regOk(n(m[2]), 0, "The source"),
+        imm,
+        asm: line.toLowerCase()
+      };
+    }
+
+    else if (/^(ldb|stb|lw|sw|bne)\b/i.test(line)) {
+      throw `${line.split(" ")[0]} is not animated yet. Try add, sub, addi or stop.`;
+    }
+
+    else {
+      throw `Could not read "${line}". Try: add r3, r1, r2 | sub r3, r2, r1 | addi r1, r1, 5 | stop`;
+    }
+
+    program.push(pr);
+  }
+
+  const init = {};
+  const t = regsText.trim();
+
+  if (t) {
+    for (const part of t.split(/[,;]+|\s+(?=r\d)/)) {
       if (!part.trim()) continue;
-      const q = part.trim().match(/^r(\d+) ?= ?(0x[0-9a-f]+|\d+)$/i);
-      if (!q) throw `Could not read "${part.trim()}" in the starting registers. Try: r1=100, r2=0x20`;
-      const r = n(q[1]), v = n(q[2]);
-      if (r < 1 || r > 16) throw `Starting registers must be r1 to r16 (r${r} does not exist).`;
-      if (v > 4294967295) throw `r${r} holds an unsigned 32-bit number, so ${q[2]} is too big.`;
+
+      const q = part.trim().match(
+        /^r(\d+) ?= ?(0x[0-9a-f]+|\d+)$/i
+      );
+
+      if (!q) {
+        throw `Could not read "${part.trim()}" in the starting registers. Try: r1=100, r2=0x20`;
+      }
+
+      const r = n(q[1]);
+      const v = Number(q[2]);
+
+      if (r < 1 || r > 16) {
+        throw `Starting registers must be r1 to r16 (r${r} does not exist).`;
+      }
+
+      if (v > 4294967295) {
+        throw `r${r} holds an unsigned 32-bit number, so ${q[2]} is too big.`;
+      }
+
       init[r] = v;
     }
-    return { id: "custom", asm: line.toLowerCase(), what: "Your input", init, ...pr };
   }
+
+  return {
+    id: "custom",
+    asm: program.map(p => p.asm).join("\n"),
+    what: "Your input",
+    init,
+    program
+  };
+}
+
   function loadInput() {
     if (busy || playing) { $("inErr").textContent = "Pause or finish the current run first."; return; }
     try {
-      const pr = parseInput($("inAsm").value, $("inRegs").value);
+      const pr = parseInput($("ism").value, $("inRegs").value);
       $("inErr").textContent = "";
       preset = pr;
       document.querySelectorAll("#presetChips .chip").forEach((c) => c.setAttribute("aria-pressed", "false"));
@@ -500,7 +787,8 @@
     } catch (e) { $("inErr").textContent = String(e); }
   }
   $("inGo").addEventListener("click", loadInput);
-  ["inAsm", "inRegs"].forEach((id) => $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") loadInput(); }));
-
+  $("inRegs").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") loadInput();
+  });
   reset();
 })();

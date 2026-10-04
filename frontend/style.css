@@ -135,10 +135,15 @@ footer { font-size: 12.5px; color: var(--muted); }
 
 .try { display: grid; gap: 10px; }
 .try .fields { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 760px) { .try .fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; } }
-.try label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+@media (min-width: 760px) {
+  .try .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.try label { display: grid; gap: 10px; font-size: 12.5px; color: var(--muted); }
 .try input { font-family: var(--f-mono); font-size: 14px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
 .try .go { font-family: var(--f-mono); font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 9px 16px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); }
+.try textarea {font-family: var(--f-mono);font-size: 14px;line-height: 1.5;padding: 8px 10px;border-radius: 8px;border: 1px solid var(--line);background: var(--surface);color: var(--ink);min-width: 0; width: 100%; min-height: 200px; resize: vertical;}
 .try .err { margin: 0; font-size: 13px; color: #b3261e; min-height: 1.2em; }
 :root[data-theme="dark"] .try .err { color: #ff9a8f; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .try .err { color: #ff9a8f; } }

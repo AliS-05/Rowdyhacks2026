@@ -31,17 +31,20 @@
     <div class="chips" id="soonChips" aria-label="Instructions not animated yet"></div>
   </section>
 
-  <section class="try" aria-label="Your own instruction">
+  <section class="try" aria-label="Your own instructions">
     <div class="label">Or type your own</div>
     <div class="fields">
-      <textarea id="ism" rows="5" spellcheck = "false">addi r1,r1, 5</textarea>
-        <input id="inAsm" type="text" value="add r3, r1, r2" spellcheck="false" autocomplete="off">
-      </label>
-      <label for="inRegs">Starting registers (the rest are 0)
-        <input id="inRegs" type="text" value="r1=100, r2=200" spellcheck="false" autocomplete="off">
-      </label>
-      <button class="go" id="inGo" type="button">Load it</button>
-    </div>
+  <label for="ism">Assembly instructions
+    <textarea id="ism" rows="10" spellcheck="false">addi r1, r1, 5
+add r3, r1, r2</textarea>
+  </label>
+
+  <label for="inRegs">Starting registers (the rest are 0)
+    <input id="inRegs" type="text" value="r1=100, r2=200" spellcheck="false" autocomplete="off">
+  </label>
+
+  <button class="go" id="inGo" type="button">Load it</button>
+</div>
     <p class="err" id="inErr" role="alert"></p>
   </section>
 
