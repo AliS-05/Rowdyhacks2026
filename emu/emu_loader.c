@@ -60,3 +60,4 @@ int load_program(const char *path, unsigned char *program, int max_instr) {
     printf("Read %d instructions successfully.\n", count);
     return count;
 }
+

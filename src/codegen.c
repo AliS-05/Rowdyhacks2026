@@ -62,9 +62,7 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			 break;
 		}
 		case INST_LW:{
-		    int register1 = getRegisterCode(inst->operand1.strValue);
-			int register2 = getRegisterCode(inst->operand2.strValue);
-		      	int register1 = getRegisterCode(inst->operand1.strValue);
+			int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2;
 			uint32_t funct7 = 0b0000000;
 			if(inst->operand2.type == EXPRESSION){
