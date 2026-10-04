@@ -34,6 +34,7 @@
 /* The test program */
 
 /* CHANGED: each name is given the same number the switch uses */
+
 typedef enum { ADD = 1, SUB = 2, LDB = 3, STB = 4, ADDI = 5, LW = 6, SW = 7, BNE = 8, HALT = 255 } Op;
 typedef struct { Op op; int dest, a, b; } Inst;
 static Inst test_program[] = {
@@ -60,6 +61,7 @@ static int make_test_file(const char *path, int cut_short) {
         printf("Could not create %s\n", path);
         return 1;
     }
+
     /* CHANGED: turn each Inst into 4 bytes (op, dest, a, b), because main reads 4 bytes per instruction */
     int n = sizeof test_program / sizeof test_program[0];
     unsigned char bytes[sizeof test_program / sizeof test_program[0] * 4];
@@ -144,17 +146,17 @@ static void print_registers(void) {
 }
 
 // test
-int execute_instruction(int op, int a, int b, int c, unsigned char memory[MEM_SIZE], int *pc) {   /* CHANGED: int instr_num -> int *pc (BNE needs to change it) */
+int execute_instruction(int op, int rd, int rs1, int byte3, unsigned char memory[MEM_SIZE], int *pc) {   /* CHANGED: int instr_num -> int *pc (BNE needs to change it) */
     int instr_num = *pc;                  /* NEW: which instruction this is */
  
-    int imm = (int8_t)c;                  /* byte 3 as a number from -128 to 127 */
+    int imm = (int8_t)byte3;                  /* byte 3 as a number from -128 to 127 */
     int stopped = 0;
  
     /* check the register numbers before using them:
        a destination must be r1..r16 (r0 is unused), a source can be r0..r16 */
-    int dest_bad = (a < 1 || a >= NUM_REGS);
-    int src_bad  = (a >= NUM_REGS);
-    int b_bad    = (b >= NUM_REGS);
+    int dest_bad = (rd < 1 || rd >= NUM_REGS);
+    int src_bad  = (rs1 < 0 || rs1 >= NUM_REGS);
+    int b_bad    = (rs1 >= NUM_REGS);
     int c_bad    = (c >= NUM_REGS);
     int bad = 0;
  
@@ -176,29 +178,29 @@ int execute_instruction(int op, int a, int b, int c, unsigned char memory[MEM_SI
     /* execute the instruction */
     switch (op) {
         case 1:                               /* add rd, rs1, rs2 */
-            add(b, c, a);
+            add(rs1, c, rd);
             break;
         case 2:                               /* sub rd, rs1, rs2 */
-            r[a] = r[b] - r[c];
+            r[rd] = r[rs1] - r[c];
             break;
         case 3:                               /* ldb rd, base, offset : memory -> register (1 byte) */
-            ldb((int)(r[b] + imm), a, memory);    /* CHANGED: uses the ldb function, address = r[base] + offset */
+            ldb((int)(r[rs1] + imm), rd, memory);    /* CHANGED: uses the ldb function, address = r[base] + offset */
             break;
         case 4:                               /* stb rs, base, offset : register -> memory (1 byte) */
-            stb(a, (int)(r[b] + imm), memory);    /* CHANGED: uses the stb function, address = r[base] + offset */
+            stb(rd, (int)(r[rs1] + imm), memory);    /* CHANGED: uses the stb function, address = r[base] + offset */
             break;
         case 5:                               /* addi rd, rs1, imm */
-            addi(b, imm, a);
+            addi(rs1, imm, rd);
             break;
         case 6:                               /* lw rd, base, offset : memory -> register (4 bytes) */
-            lw(b, imm, a, memory);
+            lw(rs1, imm, rd, memory);
             break;
         case 7:                               /* sw rs, base, offset : register -> memory (4 bytes) */
-            sw(b, imm, a, memory);
+            sw(rs1, imm, rd, memory);
             break;
         case 8: {                             /* NEW: bne rs1, rs2, offset : if r[rs1] != r[rs2], jump */
             int target = *pc;
-            bne(a, b, &target, imm);
+            bne(rs1, c, &target, imm);
             if (target != *pc) next_pc = target;  /* branch taken: go to the target */
             break;
         }
