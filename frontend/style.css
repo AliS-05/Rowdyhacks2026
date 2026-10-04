@@ -115,11 +115,6 @@ figcaption { font-size: 12.5px; color: var(--silk-dim); padding: 8px 4px 0; }
 .narr h2 { font-family: var(--f-display); font-weight: 700; font-size: 22px; margin: 14px 0 6px; line-height: 1.15; }
 .narr p { margin: 0; }
 .narr p .m { font-family: var(--f-mono); font-size: 13.5px; background: var(--signal-soft); padding: 1px 5px; border-radius: 4px; }
-.code-head { display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
-pre.code { margin: 0; overflow-x: auto; font-family: var(--f-mono); font-size: 12.5px; line-height: 1.6; }
-pre.code span.ln { display: block; padding: 0 8px; border-radius: 4px; white-space: pre; }
-pre.code span.ln.hl { background: var(--signal-soft); }
-pre.code .c { color: var(--muted); }
 
 /* opcode table */
 .isa h2 { font-family: var(--f-display); font-weight: 700; font-size: 20px; margin: 0 0 4px; }

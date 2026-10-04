@@ -81,8 +81,12 @@ int main(int argc, char *argv[]) {
 	fwrite("[", 1, 1, jsonOutput);
 	initCurrentJSONInstruction();
 	if (run_program(program, count, jsonOutput) != 0) return 1;
+<<<<<<< HEAD
 
 	fwrite("]", 1, 1, jsonOutput);
+=======
+	fclose(jsonOutput);
+>>>>>>> 000f4f3b45420b3d067ba6089d871dc49df8c5cd
 	/* 3. Show the result */
 	printf("Final registers:");
 	for (int i = 0; i <= 8; i++)

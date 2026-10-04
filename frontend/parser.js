@@ -43,10 +43,17 @@
   function explain(reply) {
     var error = reply.error || 'no reason given';
     if (reply.stage === 'request') return error;         // a problem with what was typed
-    var text = 'Stopped at the ' + (reply.stage || 'bridge') + ' stage: ' + error + '.';
+    var stage = reply.stage || 'bridge';
+    var text = 'Stopped at the ' + stage + ' stage: ' + error + '.';
     var asm = reply.assembler || {}, emu = reply.emulator || {};
-    var said = [asm.stdout, asm.stderr, emu.raw, emu.stderr].filter(Boolean).join(' ').trim();
-    if (said) text += ' It printed: ' + said.slice(0, 300);
-    return text;
+    // what the program that failed printed; error messages are at the end, so keep the end
+    var said = (stage === 'emulator' ? [emu.raw, emu.stderr] : [asm.stdout, asm.stderr]);
+    said = said.filter(Boolean).join(' ').trim();
+    if (said.length > 400) said = '... ' + said.slice(-400);
+    text += said ? ' The ' + stage + ' printed: ' + said : ' The ' + stage + ' printed nothing.';
+    if (stage === 'emulator' && asm.output_from) {
+      text += ' (It was given the assembler output: ' + asm.output_from + ', ' + asm.output_bytes + ' bytes.)';
+    }
+    return text + ' The full details are in the terminal window where the bridge is running.';
   }
 })();
