@@ -103,7 +103,8 @@ public class Bridge {
         // Options, in any order:  --install  --build  --file <name>  <port number>
         boolean install = false, build = false;
         String fileToRun = null;
-        port = DEFAULT_PORT;
+        String envPort = System.getenv("PORT");
+        port = envPort != null ? Integer.parseInt(envPort) : DEFAULT_PORT;
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--install")) install = true;
             else if (args[i].equals("--build")) build = true;
@@ -135,7 +136,7 @@ public class Bridge {
         // Use new InetSocketAddress(port) instead to accept other machines on the network.
         HttpServer server;
         try {
-            server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+            server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         } catch (BindException e) {
             System.out.println("Port " + port + " is already used by another program, so the bridge cannot start.");
             System.out.println("Is another copy of the bridge still running? Otherwise start it on a free port:");
