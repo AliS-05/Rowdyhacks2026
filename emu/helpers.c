@@ -3,13 +3,16 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "helpers.h"
+#include "emu.h"
 
-static char *json_operands[MAX_OPERANDS];
-static uint32_t json_register_states[NUM_REGS];
+extern struct CurrentJSONInstruction CurrentJSONInstruction;
+extern int pc;
+static char *json_operands[MAX_OPERANDS] = {0};
+static uint32_t json_register_states[NUM_REGS] = {0};
 
-static uint32_t json_memory_locations[MAX_MEMORY_DIFFS];
-static uint8_t json_memory_values[MAX_MEMORY_DIFFS];
-static uint8_t json_memory_old_values[MAX_MEMORY_DIFFS];
+static uint32_t json_memory_locations[MAX_MEMORY_DIFFS] = {0};
+static uint8_t json_memory_values[MAX_MEMORY_DIFFS] = {0};
+static uint8_t json_memory_old_values[MAX_MEMORY_DIFFS] = {0};
 
 void initCurrentJSONInstruction(void){
 	CurrentJSONInstruction.operands = json_operands;
@@ -33,8 +36,8 @@ void resetCurrentJSONInstruction(int cycle){
 	for (int i = 0; i < MAX_OPERANDS; i++)
 		CurrentJSONInstruction.operands[i] = NULL;
 
-	for (int i = 0; i < NUM_REGS; i++)
-		CurrentJSONInstruction.registerStates[i] = r[i];
+	//for (int i = 0; i < NUM_REGS; i++)
+	//	CurrentJSONInstruction.registerStates[i] = r[i];
 }
 
 void recordInstruction(const char *mnemonic, uint32_t opcode, const char *op1, const char *op2, const char *op3) {
@@ -55,6 +58,104 @@ void recordInstruction(const char *mnemonic, uint32_t opcode, const char *op1, c
 		CurrentJSONInstruction.operands[
 			CurrentJSONInstruction.operand_count++
 		] = (char *)op3;
+}
+
+int writeJSONFile(FILE* jsonOutput) {
+	if (jsonOutput == NULL)
+		return -1;
+
+	fprintf(jsonOutput, "{\n");
+
+	fprintf(jsonOutput,
+		"\t\"cycle_number\": %d,\n",
+		CurrentJSONInstruction.cycle_number);
+
+	fprintf(jsonOutput,
+		"\t\"program_counter\": %d,\n",
+		CurrentJSONInstruction.program_counter);
+
+	fprintf(jsonOutput, "\t\"instruction_information\": {\n");
+
+	fprintf(jsonOutput,
+		"\t\t\"instruction\": \"%s\",\n",
+		CurrentJSONInstruction.instruction_mnemonic);
+
+	fprintf(jsonOutput,
+		"\t\t\"opcode\": %u,\n",
+		CurrentJSONInstruction.opcode);
+
+	fprintf(jsonOutput, "\t\t\"operands\": [");
+
+	for (int i = 0; i < CurrentJSONInstruction.operand_count; i++) {
+		fprintf(jsonOutput, "\"%s\"",
+			CurrentJSONInstruction.operands[i]);
+
+		if (i < CurrentJSONInstruction.operand_count - 1)
+			fprintf(jsonOutput, ", ");
+	}
+
+	fprintf(jsonOutput, "]\n");
+	fprintf(jsonOutput, "\t},\n");
+
+
+	/* registers */
+	fprintf(jsonOutput, "\t\"register_states\": [");
+
+	for (int i = 0; i < NUM_REGS; i++) {
+		fprintf(jsonOutput, "%u",
+			CurrentJSONInstruction.registerStates[i]);
+
+		if (i < NUM_REGS - 1)
+			fprintf(jsonOutput, ", ");
+	}
+
+	fprintf(jsonOutput, "],\n");
+
+
+	/* memory locations changed */
+	fprintf(jsonOutput, "\t\"memory_locations_diffed\": [");
+
+	for (int i = 0; i < CurrentJSONInstruction.memory_diff_count; i++) {
+		fprintf(jsonOutput, "%u",
+			CurrentJSONInstruction.memoryLocationsDiffed[i]);
+
+		if (i < CurrentJSONInstruction.memory_diff_count - 1)
+			fprintf(jsonOutput, ", ");
+	}
+
+	fprintf(jsonOutput, "],\n");
+
+
+	/* new memory values */
+	fprintf(jsonOutput, "\t\"memory_values_diffed\": [");
+
+	for (int i = 0; i < CurrentJSONInstruction.memory_diff_count; i++) {
+		fprintf(jsonOutput, "%u",
+			CurrentJSONInstruction.memoryValuesDiffed[i]);
+
+		if (i < CurrentJSONInstruction.memory_diff_count - 1)
+			fprintf(jsonOutput, ", ");
+	}
+
+	fprintf(jsonOutput, "],\n");
+
+
+	/* old memory values */
+	fprintf(jsonOutput, "\t\"memory_old_value\": [");
+
+	for (int i = 0; i < CurrentJSONInstruction.memory_diff_count; i++) {
+		fprintf(jsonOutput, "%u",
+			CurrentJSONInstruction.memory_old_value[i]);
+
+		if (i < CurrentJSONInstruction.memory_diff_count - 1)
+			fprintf(jsonOutput, ", ");
+	}
+
+	fprintf(jsonOutput, "]\n");
+
+	fprintf(jsonOutput, "}");
+
+	return 0;
 }
 
 const char* returnRegisterString(uint8_t reg) {

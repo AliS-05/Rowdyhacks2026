@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-
+#include "helpers.h"
 #define NUM_REGS  17          /* r[0]..r[16] (r[0] is unused) */
 #define MEM_SIZE  65535         /* data memory: addresses 0..255 */
 #define MAX_INSTR 1024        /* biggest program we accept */

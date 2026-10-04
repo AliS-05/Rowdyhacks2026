@@ -41,35 +41,48 @@ static void print_registers(void) {
 //	r[rd] = r[rs1] + r[rs2];
 //}
 
+static char operandBuffer1[32];
+static char operandBuffer2[32];
+static char operandBuffer3[32];
+
 void addi(uint32_t* instruction) {
 	uint32_t inst = *instruction;
 
-	uint8_t opcode =  inst        & 0x7F;
-	uint8_t rd     = (inst >> 7)  & 0x1F;
+	uint8_t opcode = inst & 0x7F;
+	uint8_t rd  = (inst >> 7) & 0x1F;
+	uint8_t rs1 = (inst >> 15) & 0x1F;
 
-	uint8_t funct3 = (inst >> 12) & 0x07;
-
-	uint8_t rs1    = (inst >> 15) & 0x1F;
-
-	uint16_t imm = (inst >> 20);
-
+	int32_t imm = (int32_t)inst >> 20;
 	r[rd] = r[rs1] + imm;
+
+	snprintf(operandBuffer3, sizeof(operandBuffer3), "%d", imm);
+
+
+	recordInstruction(
+		"addi",
+		opcode,
+		returnRegisterString(rd),
+		returnRegisterString(rs1),
+		operandBuffer3
+	);
+
 }
 
 void load(uint32_t* instruction) {
-	//NOTE switch on funct3 if want lb, lh later
-	int inst = *instruction;
-	uint8_t opcode =  inst        & 0x7F;
+	uint32_t inst = *instruction;
 
-	uint8_t rd     = (inst >> 7)  & 0x1F;
+	uint8_t opcode = inst & 0x7F;
+	uint8_t rd     = (inst >> 7) & 0x1F;
 	uint8_t funct3 = (inst >> 12) & 0x07;
 	uint8_t rs1    = (inst >> 15) & 0x1F;
-	//uint8_t rs2    = (inst >> 20) & 0x1F;
-	uint16_t imm = (inst >> 20);
-	
+
+	int32_t imm = (int32_t)inst >> 20;
+
 	uint32_t address = r[rs1] + imm;
-	if(address > MEM_SIZE - 4){
+
+	if (address > MEM_SIZE - 4) {
 		printf("ERROR: MEMORY OOB\n");
+		return;
 	}
 	r[rd] =
 		(uint32_t)memory[address]
@@ -77,33 +90,78 @@ void load(uint32_t* instruction) {
 		| ((uint32_t)memory[address + 2] << 16)
 		| ((uint32_t)memory[address + 3] << 24);
 
-	//uint32_t address = r[base] + (uint32_t)offset;
-	//if (address > MEM_SIZE - 4) { printf("bad load at %u\n", (unsigned)address); return; }
-	//r[destination] = (uint32_t)memory[address]              
-	//	| (uint32_t)memory[address + 1] << 8
-	//	| (uint32_t)memory[address + 2] << 16
-	//	| (uint32_t)memory[address + 3] << 24;
+	snprintf(
+		operandBuffer2,
+		sizeof(operandBuffer2),
+		"%d(%s)",
+		imm,
+		returnRegisterString(rs1)
+	);
+	
+	recordInstruction(
+			"lw",
+			opcode,
+			returnRegisterString(rd),
+			operandBuffer2,
+			NULL
+			);
+
 }
 
 void store(uint32_t* instruction) {
-	//NOTE switch on funct3 if want lb, lh later
-	int inst = *instruction;
+	uint32_t inst = *instruction;
 
-	uint8_t opcode = inst & 0x7F;
-	uint8_t immLow = (inst >> 7) & 0x1F;
-	uint8_t funct3 = (inst >> 12) & 0x07;
-	uint8_t rs1 = (inst >> 15) & 0x1F;
-	uint8_t rs2 = (inst >> 20) & 0x1F;
+	uint8_t opcode  = inst & 0x7F;
+	uint8_t immLow  = (inst >> 7) & 0x1F;
+	uint8_t funct3  = (inst >> 12) & 0x07;
+	uint8_t rs1     = (inst >> 15) & 0x1F;
+	uint8_t rs2     = (inst >> 20) & 0x1F;
 	uint8_t immHigh = (inst >> 25) & 0x7F;
 
-	uint16_t imm = (immHigh << 5) | immLow;
+	int32_t imm = (immHigh << 5) | immLow;
+
+	/* sign extend 12-bit immediate */
+	if (imm & 0x800)
+		imm |= ~0xFFF;
 
 	uint32_t address = r[rs1] + imm;
+
+	if (address > MEM_SIZE - 4) {
+		printf("ERROR: MEMORY OOB\n");
+		return;
+	}
+
+	snprintf(
+		operandBuffer2,
+		sizeof(operandBuffer2),
+		"%d(%s)",
+		imm,
+		returnRegisterString(rs1)
+	);
+
+		CurrentJSONInstruction.memory_diff_count = 4;
+
+	for (int i = 0; i < 4; i++) {
+		CurrentJSONInstruction.memoryLocationsDiffed[i] = address + i;
+
+		CurrentJSONInstruction.memory_old_value[i] =
+			memory[address + i];
+
+		CurrentJSONInstruction.memoryValuesDiffed[i] =
+			(r[rs2] >> (i * 8)) & 0xFF;
+	}
 
 	memory[address]     = r[rs2] & 0xFF;
 	memory[address + 1] = (r[rs2] >> 8) & 0xFF;
 	memory[address + 2] = (r[rs2] >> 16) & 0xFF;
 	memory[address + 3] = (r[rs2] >> 24) & 0xFF;
+	recordInstruction(
+		"sw",
+		opcode,
+		returnRegisterString(rs2),
+		operandBuffer2,
+		NULL
+	);
 }
 
 void arithmetic(uint32_t* instruction){
@@ -148,24 +206,41 @@ void arithmetic(uint32_t* instruction){
 void bne(uint32_t* instruction) {
 	uint32_t inst = *instruction;
 
-	uint8_t opcode = inst & 0x7F;
-	uint8_t imm11 = (inst >> 7) & 0x01;
-	uint8_t imm4_1 = (inst >> 8) & 0x0F;
-	uint8_t funct3 = (inst >> 12) & 0x07;
-	uint8_t rs1 = (inst >> 15) & 0x1F;
-	uint8_t rs2 = (inst >> 20) & 0x1F;
+	uint8_t opcode  = inst & 0x7F;
+	uint8_t imm11   = (inst >> 7) & 0x01;
+	uint8_t imm4_1  = (inst >> 8) & 0x0F;
+	uint8_t funct3  = (inst >> 12) & 0x07;
+	uint8_t rs1     = (inst >> 15) & 0x1F;
+	uint8_t rs2     = (inst >> 20) & 0x1F;
 	uint8_t imm10_5 = (inst >> 25) & 0x3F;
-	uint8_t imm12 = (inst >> 31) & 0x01;
+	uint8_t imm12   = (inst >> 31) & 0x01;
 
-	int32_t imm = (imm12 << 12) | (imm11 << 11) | (imm10_5 << 5) | (imm4_1 << 1);
+	int32_t imm =
+		  (imm12 << 12)
+		| (imm11 << 11)
+		| (imm10_5 << 5)
+		| (imm4_1 << 1);
 
-	// sign extend 13-bit immediate
 	if (imm & 0x1000)
 		imm |= ~0x1FFF;
 
+	snprintf(operandBuffer3, sizeof(operandBuffer3), "%d", imm);
+
+	
 	if (r[rs1] != r[rs2]) {
 		pc += imm / 4;
+	} else {
+		pc++;
 	}
+	recordInstruction(
+			"bne",
+			opcode,
+			returnRegisterString(rs1),
+			returnRegisterString(rs2),
+			operandBuffer3
+			);
+
+
 }
 
 
@@ -223,8 +298,7 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput) {
 			printf("Error: pc=%d is outside the program (0..%d)\n", pc, count - 1);
 			return 1;
 		}
-		CurrentJSONInstruction.cycle_number = cycle;
-		CurrentJSONInstruction.program_counter = pc;
+		resetCurrentJSONInstruction(cycle);
 
 		//fprintf("{\ncycle_number : %d,\nprogram_counter : %d,\ninstruction_information : {\ninstruction : \"%s\", operands : [\"%s\",\"%s\",\"%s\"],\nopcode : \"%s\"\n},\n\"register_states\": [%d, %d, %d],\n\"memory_diff\" : []", steps, pc, );
 		const uint8_t *p = &program[pc * 4];
@@ -236,6 +310,10 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput) {
 			| ((uint32_t)p[3] << 24);
 
 		int result = execute_instruction(&instruction);
+		
+		for (int i = 0; i < NUM_REGS; i++) {
+			CurrentJSONInstruction.registerStates[i] = r[i];
+		}
 
 
 		//json output
@@ -252,6 +330,7 @@ int run_program(const unsigned char *program, int count, FILE* jsonOutput) {
 //			"memory_values_diffed" : []
 //			"memory_old_value" : []
 //		}
+		writeJSONFile(jsonOutput);
 
 		if (result == -1) return 1;               /* error: stop safely */
 		if (result == 1)  return 0;               /* stop */

@@ -1,0 +1,133 @@
+{
+	"cycle_number": 0,
+	"program_counter": 0,
+	"instruction_information": {
+		"instruction": "lw",
+		"opcode": 3,
+		"operands": ["r1", "0(r2)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 1,
+	"program_counter": 1,
+	"instruction_information": {
+		"instruction": "lw",
+		"opcode": 3,
+		"operands": ["r3", "16(r4)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 2,
+	"program_counter": 2,
+	"instruction_information": {
+		"instruction": "lw",
+		"opcode": 3,
+		"operands": ["r5", "32(r6)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 3,
+	"program_counter": 3,
+	"instruction_information": {
+		"instruction": "sw",
+		"opcode": 35,
+		"operands": ["r1", "0(r2)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [0, 1, 2, 3],
+	"memory_values_diffed": [0, 0, 0, 0],
+	"memory_old_value": [0, 0, 0, 0]
+}{
+	"cycle_number": 4,
+	"program_counter": 4,
+	"instruction_information": {
+		"instruction": "sw",
+		"opcode": 35,
+		"operands": ["r3", "16(r4)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [16, 17, 18, 19],
+	"memory_values_diffed": [0, 0, 0, 0],
+	"memory_old_value": [0, 0, 0, 0]
+}{
+	"cycle_number": 5,
+	"program_counter": 5,
+	"instruction_information": {
+		"instruction": "sw",
+		"opcode": 35,
+		"operands": ["r5", "32(r6)"]
+	},
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [32, 33, 34, 35],
+	"memory_values_diffed": [0, 0, 0, 0],
+	"memory_old_value": [0, 0, 0, 0]
+}{
+	"cycle_number": 6,
+	"program_counter": 6,
+	"instruction_information": {
+		"instruction": "addi",
+		"opcode": 19,
+		"operands": ["r1", "r2", "10"]
+	},
+	"register_states": [0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 7,
+	"program_counter": 7,
+	"instruction_information": {
+		"instruction": "addi",
+		"opcode": 19,
+		"operands": ["r3", "r4", "20"]
+	},
+	"register_states": [0, 10, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 8,
+	"program_counter": 8,
+	"instruction_information": {
+		"instruction": "add",
+		"opcode": 51,
+		"operands": ["r1", "r2", "r3"]
+	},
+	"register_states": [0, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 9,
+	"program_counter": 9,
+	"instruction_information": {
+		"instruction": "sub",
+		"opcode": 51,
+		"operands": ["r4", "r5", "r6"]
+	},
+	"register_states": [0, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}{
+	"cycle_number": 10,
+	"program_counter": 10,
+	"instruction_information": {
+		"instruction": "bne",
+		"opcode": 99,
+		"operands": ["r1", "r2", "8"]
+	},
+	"register_states": [0, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"memory_locations_diffed": [],
+	"memory_values_diffed": [],
+	"memory_old_value": []
+}

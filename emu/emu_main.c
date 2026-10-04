@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 
 	/* 2. RUN it (emu_cpu.c) */
 	FILE* jsonOutput = fopen("cpu_json_output.json", "w");
+	initCurrentJSONInstruction();
 	if (run_program(program, count, jsonOutput) != 0) return 1;
 
 	/* 3. Show the result */
