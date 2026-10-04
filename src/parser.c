@@ -296,11 +296,30 @@ Operand parseOperand(TokVector* vec, int* pos){
 		op.type = MEMORY; // dont want it to stay LBRACKET
 		op.strValue = vec->data[*pos].strValue; //copying register value
 		(*pos)++; //done with register now sitting at ] which gets skipped below
-	}else if(t.type == MINUS && (peek(vec->data, *pos).type == NUMBER)){
-		(*pos)++;
-		op.type = NUMBER;
-		op.intValue = -vec->data[*pos].intValue;
-	} else if(t.type == NUMBER){
+	}else if (t.type == MINUS && peek(vec->data, *pos).type == NUMBER) {
+			(*pos)++;  // now on NUMBER
+
+			int value = -vec->data[*pos].intValue;
+
+			if (peek(vec->data, *pos).type == OPEN) {
+				// -16(r2)
+
+				op.type = EXPRESSION;
+				op.offset = value;
+
+				(*pos)++;  // OPEN
+				(*pos)++;  // REGISTER
+
+				op.strValue = vec->data[*pos].strValue;
+
+				(*pos)++;  // CLOSE
+			}
+			else {
+				// plain -16
+				op.type = NUMBER;
+				op.intValue = value;
+			}
+		} else if(t.type == NUMBER){
 		//LW r1, 16(r2) -> ID REG COMMA 
 		//index, ie 16(R4)
 		if (peek(vec->data, *pos).type == OPEN) {
