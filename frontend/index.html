@@ -29,7 +29,6 @@
   <section class="presets" aria-label="Presets">
     <div class="label">Presets</div>
     <div class="chips" id="presetChips"></div>
-    <div class="chips" id="soonChips" aria-label="Instructions not animated yet"></div>
   </section>
 
   <section class="try" aria-label="Your own instructions">
@@ -81,7 +80,7 @@ add r3, r1, r2</textarea>
           <text class="silk-dim" x="44" y="334">pc</text>
           <text class="big" id="pcVal" x="91" y="366" text-anchor="middle">0</text>
           <circle class="cell" id="adder" cx="206" cy="348" r="20"/>
-          <text class="silk" x="206" y="353" text-anchor="middle">+1</text>
+          <text class="silk" id="adderTxt" x="206" y="353" text-anchor="middle">+1</text>
           <text class="silk-dim" x="99" y="262">fetch address</text>
 
           <!-- instruction register -->
@@ -89,10 +88,6 @@ add r3, r1, r2</textarea>
           <rect class="panel" x="300" y="56" width="380" height="120" rx="8"/>
           <g id="irCells"></g>
 
-          <!-- sign extend -->
-          <rect class="cell" id="sxBox" x="355" y="210" width="120" height="50" rx="6"/>
-          <text class="silk-dim" x="415" y="227" text-anchor="middle">SIGN-EXTEND</text>
-          <text class="val" id="sxVal" x="415" y="249" text-anchor="middle">—</text>
           <text class="silk-dim" x="322" y="250" text-anchor="end">ALU op</text>
 
           <!-- ALU -->
@@ -113,7 +108,6 @@ add r3, r1, r2</textarea>
           <g id="packets"></g>
         </svg>
       </div>
-      <figcaption>Copper traces are the wires between parts. A gold chip on a trace is a value moving along it. Registers r0–r16 are shown in hex and decimal.</figcaption>
     </figure>
 
     <aside class="side">
@@ -150,5 +144,6 @@ add r3, r1, r2</textarea>
       </table>
     </div>
   </section>
+</div>
 </body>
 </html>
