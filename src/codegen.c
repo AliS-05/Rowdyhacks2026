@@ -62,7 +62,7 @@ void encodeInstruction(Instruction* inst, SymbolTable* table, ByteVector* byteVe
 			 break;
 		}
 		case INST_LW:{
-		      	int register1 = getRegisterCode(inst->operand1.strValue);
+		    int register1 = getRegisterCode(inst->operand1.strValue);
 			int register2 = getRegisterCode(inst->operand2.strValue);
 			//int operand3 = inst->operand3.intValue;
 
