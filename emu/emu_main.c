@@ -78,9 +78,11 @@ int main(int argc, char *argv[]) {
 
 	/* 2. RUN it (emu_cpu.c) */
 	FILE* jsonOutput = fopen("cpu_json_output.json", "w");
+	fwrite("[", 1, 1, jsonOutput);
 	initCurrentJSONInstruction();
 	if (run_program(program, count, jsonOutput) != 0) return 1;
 
+	fwrite("]", 1, 1, jsonOutput);
 	/* 3. Show the result */
 	printf("Final registers:");
 	for (int i = 0; i <= 8; i++)

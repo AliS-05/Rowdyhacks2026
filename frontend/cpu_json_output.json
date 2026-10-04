@@ -1,10 +1,10 @@
-[{
+{
 	"cycle_number": 0,
 	"program_counter": 0,
 	"instruction_information": {
 		"instruction": "addi",
 		"opcode": 19,
-		"operands": ["r1", "r1", "5"]
+		"operands": ["r1", "r2", "5"]
 	},
 	"register_states": [0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 	"memory_locations_diffed": [],
@@ -16,9 +16,9 @@
 	"instruction_information": {
 		"instruction": "add",
 		"opcode": 51,
-		"operands": ["r3", "r1", "r2"]
+		"operands": ["r1", "r2", "r3"]
 	},
-	"register_states": [0, 5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"register_states": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 	"memory_locations_diffed": [],
 	"memory_values_diffed": [],
 	"memory_old_value": []
