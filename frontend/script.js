@@ -1,4 +1,7 @@
-
+/* script.js
+   Parser is pluggable. Load any file before this one that defines either
+     window.parseProgram(text, regsText)   or   window.Asm.parseInput(text, regsText)
+   See parser.template.js for the accepted return shapes. */
 (() => {
   const NS = "http://www.w3.org/2000/svg";
   const $ = (id) => document.getElementById(id);
@@ -141,6 +144,11 @@
     const list = [];
     for (const [i, x] of raw.entries()) { list.push(normalizeIns(x, i)); if (list[i].op === 255) break; }
     const init = (!Array.isArray(out) && (out.init || out.regs || out.registers)) || {};
+    for (const k in init) {                  // registers are unsigned 32-bit, whatever the parser allowed
+      const v = init[k];
+      if (!(Number(k) >= 1 && Number(k) <= 16)) throw `Starting registers must be r1 to r16 (r${k} does not exist).`;
+      if (!Number.isInteger(v) || v < 0 || v > 4294967295) throw `r${k} holds an unsigned 32-bit number (0 to 4,294,967,295), so ${v} is not allowed.`;
+    }
     return { list, init };
   }
   function runParser(text, regsText) {
@@ -373,8 +381,11 @@
     const signNote = p.imm < 0
       ? `Byte 3 is <span class="m">0x${hex2(b[3])}</span>. Its top bit is set, so as a signed 8-bit number it means <span class="m">${p.imm}</span>.`
       : `Byte 3 is <span class="m">0x${hex2(b[3])}</span>, which is <span class="m">${p.imm}</span> as a signed 8-bit number.`;
-    const wrapNote = a + p.imm < 0
+    const sum = a + p.imm;
+    const wrapNote = sum < 0
       ? ` Registers are unsigned 32-bit, so going below zero wraps around to <span class="m">${fmt(result)}</span>.`
+      : sum > 0xFFFFFFFF
+      ? ` Registers are unsigned 32-bit, so going past 4,294,967,295 wraps around to <span class="m">${fmt(result)}</span>.`
       : "";
 
     const fetch = async () => {
