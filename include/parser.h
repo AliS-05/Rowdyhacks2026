@@ -8,7 +8,9 @@ typedef enum {
 	INST_LABEL,
 	
 	INST_LW,
+	INST_LB,
 	INST_SW,
+	INST_SB,
 	INST_ADDI,
 	INST_ADD,
 	INST_SUB,

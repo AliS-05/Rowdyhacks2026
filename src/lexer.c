@@ -103,7 +103,11 @@ Token nextToken() {
 		        !strcmp(buffer, "r9") || 
 		        !strcmp(buffer, "r10") || 
 		        !strcmp(buffer, "r11") || 
-		        !strcmp(buffer, "r12")) 
+		        !strcmp(buffer, "r12") ||
+		        !strcmp(buffer, "r13") ||
+		        !strcmp(buffer, "r14") ||
+		        !strcmp(buffer, "r15") ||
+		        !strcmp(buffer, "r16"))
 		{
 		        tok.type = REGISTER;
 		        tok.strValue = strdup(buffer);

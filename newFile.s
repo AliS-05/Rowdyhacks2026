@@ -1,2 +1,1 @@
-addi r1, r1, 5
-add r3, r1, r2
+{"source":"addi r1, r1, 5\nadd r3, r1, r2","registers":"r1=100, r2=200"}
