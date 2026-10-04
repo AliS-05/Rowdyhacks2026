@@ -178,10 +178,10 @@ int execute_instruction(int op, int rd, int rs1, int byte3, unsigned char memory
     /* execute the instruction */
     switch (op) {
         case 1:                               /* add rd, rs1, rs2 */
-            add(rs1, c, rd);
+            add(rs1, c_bad, rd);
             break;
         case 2:                               /* sub rd, rs1, rs2 */
-            r[rd] = r[rs1] - r[c];
+            r[rd] = r[rs1] - r[c_bad];
             break;
         case 3:                               /* ldb rd, base, offset : memory -> register (1 byte) */
             ldb((int)(r[rs1] + imm), rd, memory);    /* CHANGED: uses the ldb function, address = r[base] + offset */
@@ -200,7 +200,7 @@ int execute_instruction(int op, int rd, int rs1, int byte3, unsigned char memory
             break;
         case 8: {                             /* NEW: bne rs1, rs2, offset : if r[rs1] != r[rs2], jump */
             int target = *pc;
-            bne(rs1, c, &target, imm);
+            bne(rs1, c_bad, &target, imm);
             if (target != *pc) next_pc = target;  /* branch taken: go to the target */
             break;
         }
