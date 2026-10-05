@@ -14,5 +14,5 @@
 
 
 ## Standalone Usage
-'make' creates the assembler executable, syntax -> "./assemblr <filename>", outputs a file named 'asoutput.exe'
-For the CPU emulator 'cd /emu \ bash build.sh' then ./emu <binary>
+'make' creates the assembler executable, syntax -> "./assemblr <filename>", outputs a binary file named 'asoutput.exe'
+For the CPU emulator 'cd emu && bash build_emu.sh' then ./emu <binary>
